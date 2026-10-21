@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WorkOwon JobSync</title>
+<link rel="icon" type="image/png" href="/static/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Reddit-style palette: orange brand + AI, blue actions, grey-blue canvas */
+  :root {
+    --bg: #dae0e6; --surface: #ffffff; --border: #edeff1; --border-strong: #cccccc;
+    --text: #1a1a1b; --muted: #787c7e; --accent: #0079d3; --accent-hover: #0060a9;
+    --accent-soft: #e9f5fd; --orange: #ff4500; --orange-hover: #d93a00; --orange-soft: #fff1eb;
+    --ok: #46a758; --ok-soft: #ecf8ee; --err: #ea0027; --err-soft: #fdeaee;
+    --warn-soft: #fff8e6; --radius: 8px; --shadow: none;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.5 "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+
+  header { background: var(--surface); border-bottom: 1px solid var(--border); }
+  header .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; gap: 12px; }
+  .brand { font-weight: 650; font-size: 16px; display: flex; align-items: center; gap: 8px; }
+  .brand-logo { width: 32px; height: 32px; object-fit: contain; }
+  .brand-sub { color: var(--accent); }
+  footer { text-align: center; color: var(--muted); font-size: 13px; padding: 8px 16px 28px; }
+  footer b { color: var(--text); font-weight: 600; }
+  .user { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 13px; }
+
+  .btn { border: 1px solid var(--accent); background: var(--surface); color: var(--accent); border-radius: 999px;
+    padding: 6px 16px; cursor: pointer; font-weight: 700; white-space: nowrap; }
+  .btn:hover { background-color: var(--accent-soft); }
+  .btn:disabled { opacity: .55; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .btn-primary:hover { background-color: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn-ghost { border-color: transparent; background: transparent; color: var(--muted); padding: 6px 10px; }
+  .btn-ghost:hover { background-color: #f6f7f8; color: var(--text); }
+  .btn-sm { padding: 4px 10px; font-size: 13px; }
+  .btn.btn-ai { border: 0; color: #fff; display: inline-flex; align-items: center; gap: 6px;
+    background: linear-gradient(90deg, #ff4500, #ff8717); box-shadow: 0 2px 6px rgba(255,69,0,.25);
+    transition: box-shadow .15s, transform .1s, filter .15s; }
+  .btn.btn-ai:hover, .btn.btn-ai:focus-visible { color: #fff; background: linear-gradient(90deg, #d93a00, #f27100);
+    box-shadow: 0 4px 12px rgba(255,69,0,.35); }
+  .btn.btn-ai:active { transform: translateY(1px); }
+  .btn.btn-ai:disabled { color: #fff; background: linear-gradient(90deg, #ff4500, #ff8717); opacity: .55; box-shadow: none; }
+  .btn-ai svg { width: 15px; height: 15px; flex: none; }
+  .btn-ai.busy svg { animation: spin 1s linear infinite; }
+  .chip.ai { background: var(--orange-soft); color: var(--orange-hover); font-weight: 600; }
+  .link { color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; font-weight: 550; }
+
+  .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 16px; margin: 20px 0 12px; box-shadow: var(--shadow); }
+  .search-row { display: grid; grid-template-columns: 1fr 150px 110px auto; gap: 10px; align-items: end; }
+  .filters { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 24px; margin-top: 16px; }
+  .filters.collapsed .more { display: none; }
+  .fgroup .flabel { font-size: 12px; font-weight: 600; color: #344054; margin-bottom: 6px; }
+  .chipset { display: flex; flex-wrap: wrap; gap: 6px; }
+  .opt { border: 1px solid var(--border-strong); background: #fff; border-radius: 999px; padding: 3px 12px;
+    font-size: 13px; cursor: pointer; color: var(--text); font-weight: 500; }
+  .opt:hover { border-color: var(--text); }
+  .opt.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 550; }
+  .opt .cnt { color: var(--muted); font-weight: 400; font-size: 12px; }
+  .opt.on .cnt { color: var(--accent); }
+  [data-filter="companies"] { max-height: 150px; overflow-y: auto; }
+  .panel-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; gap: 10px; flex-wrap: wrap; }
+
+  .resultbar { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+    margin: 0 2px 10px; }
+  .muted { color: var(--muted); font-size: 13px; }
+  .group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .num { width: 64px; padding: 6px 8px; border: 1px solid var(--border-strong); border-radius: 8px; text-align: center; }
+
+  .list { display: flex; flex-direction: column; gap: 8px; padding-bottom: 24px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 14px 16px; display: grid; grid-template-columns: auto 44px 1fr auto; gap: 14px;
+    align-items: center; box-shadow: var(--shadow); transition: border-color .15s; }
+  .card:hover { border-color: #898989; }
+  .card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .card.done { opacity: .6; }
+  .card input[type=checkbox] { width: 18px; height: 18px; accent-color: var(--accent); cursor: pointer; }
+  .logo { width: 44px; height: 44px; border-radius: 10px; border: 1px solid var(--border);
+    object-fit: contain; background: #fff; padding: 6px; }
+  .title { font-weight: 600; font-size: 15px; margin: 0; cursor: pointer; }
+  .title:hover { color: var(--accent); text-decoration: underline; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 1px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #f6f7f8; color: #1c1c1c; }
+  .chip.edited { background: var(--warn-soft); color: #b54708; }
+  .actions { display: flex; gap: 4px; align-items: center; }
+  .status { font-size: 13px; margin-top: 8px; padding: 6px 10px; border-radius: 6px; }
+  .status.ok { background: var(--ok-soft); color: var(--ok); }
+  .status.err { background: var(--err-soft); color: var(--err); }
+  .status.busy { background: var(--accent-soft); color: var(--accent); }
+
+  .empty { text-align: center; color: var(--muted); padding: 60px 20px; background: var(--surface);
+    border: 1px dashed var(--border-strong); border-radius: var(--radius); }
+  .spinner { width: 18px; height: 18px; border: 2px solid var(--orange-soft); border-top-color: var(--orange);
+    border-radius: 50%; animation: spin .8s linear infinite; display: inline-block; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* drawer */
+  .overlay { position: fixed; inset: 0; background: rgba(16,24,40,.35); display: none; z-index: 10; }
+  .overlay.open { display: block; }
+  .drawer { position: fixed; top: 0; right: 0; height: 100%; width: min(720px, 100%); background: var(--surface);
+    z-index: 11; transform: translateX(100%); transition: transform .2s ease; display: flex; flex-direction: column;
+    box-shadow: -8px 0 24px rgba(16,24,40,.12); }
+  .drawer.open { transform: none; }
+  .drawer-head { padding: 16px 20px; border-bottom: 1px solid var(--border); display: flex;
+    justify-content: space-between; align-items: center; gap: 12px; }
+  .drawer-head h2 { font-size: 16px; margin: 0; }
+  .drawer-body { padding: 4px 20px 20px; overflow-y: auto; flex: 1; }
+  .drawer-foot { padding: 12px 20px; border-top: 1px solid var(--border); display: flex; gap: 8px; justify-content: flex-end; }
+  .section { padding: 16px 0; border-bottom: 1px solid var(--border); }
+  .section:last-child { border-bottom: 0; }
+  .section h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 12px; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+  .grid-3 { grid-template-columns: repeat(3, 1fr); }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field.full { grid-column: 1 / -1; }
+  .field label, .search-row label { font-size: 12px; font-weight: 600; color: #344054; }
+  .field input, .field select, .row input, .row select, .search-row input, .search-row select {
+    border: 1px solid var(--border-strong); border-radius: 8px; padding: 7px 10px; background: #fff; width: 100%; }
+  input:focus, select:focus, .rich:focus, .num:focus { outline: 2px solid var(--accent-soft); border-color: var(--accent); }
+  .hint { font-size: 12px; color: var(--muted); }
+  .check { display: flex; align-items: center; gap: 6px; font-size: 13px; white-space: nowrap; }
+  .check input { accent-color: var(--accent); }
+  .rows { display: flex; flex-direction: column; gap: 8px; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .row .x { flex: none; }
+
+  /* rich text */
+  .rich-wrap { border: 1px solid var(--border-strong); border-radius: 8px; overflow: hidden; }
+  .rich-tools { display: flex; gap: 2px; padding: 4px; border-bottom: 1px solid var(--border); background: #f9fafb; }
+  .rich-tools button { border: 0; background: transparent; padding: 4px 9px; border-radius: 6px; cursor: pointer; font-size: 13px; color: #344054; }
+  .rich-tools button:hover { background: #eaecf0; }
+  .rich { min-height: 160px; max-height: 420px; overflow-y: auto; padding: 10px 14px; line-height: 1.6; border: 0; }
+  .rich p { margin: 0 0 8px; }
+  .rich ul { margin: 0 0 10px; padding-left: 22px; }
+  .rich li p { margin: 0 0 4px; }
+
+  /* modal + toast */
+  .modal { position: fixed; inset: 0; display: none; align-items: center; justify-content: center; z-index: 20;
+    background: rgba(16,24,40,.45); padding: 16px; }
+  .modal.open { display: flex; }
+  .modal-card { background: var(--surface); border-radius: 14px; padding: 24px; width: min(380px, 100%);
+    box-shadow: 0 20px 40px rgba(16,24,40,.2); }
+  .modal-card h2 { margin: 0 0 4px; font-size: 18px; }
+  .modal-card p { margin: 0 0 18px; color: var(--muted); font-size: 13px; }
+  .modal-card .field { margin-bottom: 12px; }
+  .field input, .field select, .search-row input, .search-row select { border-radius: 6px; background: #f6f7f8; border-color: var(--border); }
+  .field input:hover, .search-row input:hover, .search-row select:hover { border-color: var(--accent); background: #fff; }
+  .form-error { color: var(--err); font-size: 13px; min-height: 18px; margin-bottom: 8px; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #101828; color: #fff;
+    padding: 10px 16px; border-radius: 8px; font-size: 13px; z-index: 30; opacity: 0; transition: opacity .2s;
+    pointer-events: none; max-width: calc(100% - 32px); }
+  .toast.show { opacity: 1; }
+
+  @media (max-width: 720px) {
+    .search-row { grid-template-columns: 1fr 1fr; }
+    .search-row .kw { grid-column: 1 / -1; }
+    .search-row .go { grid-column: 1 / -1; }
+    .filters { grid-template-columns: 1fr; }
+    .card { grid-template-columns: auto 1fr; }
+    .card .logo { display: none; }
+    .card .actions { grid-column: 2; justify-content: flex-start; }
+    .grid, .grid-3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="brand"><img class="brand-logo" src="/static/logo.png" alt="">WorkOwon <span class="brand-sub">JobSync</span></div>
+    <div class="user" id="user"></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <form class="panel" id="searchForm">
+    <div class="search-row">
+      <div class="field kw"><label for="keywords">Keywords</label>
+        <input id="keywords" placeholder="e.g. HR, Sales, Software Engineer (comma separated)"></div>
+      <div class="field"><label for="posted">Posted within</label><select id="posted"></select></div>
+      <div class="field"><label for="count">Jobs to fetch</label><input id="count" type="number" min="1" max="50" value="10"></div>
+      <button class="btn btn-primary go" id="searchBtn" type="submit">Search jobs</button>
+    </div>
+    <div class="filters collapsed" id="filters">
+      <div class="fgroup"><div class="flabel">Location</div><div class="chipset" data-filter="locations"></div></div>
+      <div class="fgroup"><div class="flabel">Experience</div><div class="chipset" data-filter="experience"></div></div>
+      <div class="fgroup" style="grid-column:1/-1"><div class="flabel">Sector</div><div class="chipset" data-filter="sectors"></div></div>
+      <div class="fgroup more"><div class="flabel">Company type</div><div class="chipset" data-filter="companyTypes"></div></div>
+      <div class="fgroup more"><div class="flabel">Job type</div><div class="chipset" data-filter="employmentTypes"></div></div>
+      <div class="fgroup more"><div class="flabel">Workplace</div><div class="chipset" data-filter="workplaceTypes"></div></div>
+      <div class="fgroup more" style="grid-column:1/-1"><div class="flabel">Companies</div><div class="chipset" data-filter="companies"></div></div>
+    </div>
+    <div class="panel-foot">
+      <button type="button" class="link" id="moreBtn">More filters</button>
+      <button type="button" class="link" id="clearBtn" style="color:var(--muted)">Clear filters</button>
+    </div>
+  </form>
+
+  <div class="resultbar">
+    <span class="muted" id="stats"></span>
+    <div class="group">
+      <span class="muted">Select first</span>
+      <input class="num" id="selectCount" type="number" min="1" max="50" value="5">
+      <button class="btn" id="selectBtn">Select</button>
+      <button class="btn btn-ai" id="improveSelectedBtn" disabled title="Rewrite the selected jobs in your site's style with AI (one call per 10 jobs)"></button>
+      <button class="btn btn-primary" id="postBtn" disabled>Post selected</button>
+    </div>
+  </div>
+  <div class="list" id="list">
+    <div class="empty">Pick your filters and click <b>Search jobs</b>. With no filters it searches all companies for jobs anywhere in India, biggest employers first.</div>
+  </div>
+</main>
+
+<footer>Powered by <b>WorkOwon</b> · Developed by <b>Happy Yadav</b></footer>
+
+<div class="overlay" id="overlay"></div>
+<aside class="drawer" id="drawer" aria-hidden="true">
+  <div class="drawer-head">
+    <h2 id="drawerTitle">Review job</h2>
+    <div class="group">
+      <button class="btn btn-ai btn-sm" id="improveOneBtn" title="Rewrite this job in your site's style with AI"></button>
+      <a class="btn btn-sm" id="sourceLink" target="_blank" rel="noopener">View original</a>
+      <button class="btn-ghost btn" id="closeDrawer" aria-label="Close">✕</button>
+    </div>
+  </div>
+  <div class="drawer-body" id="editor"></div>
+  <div class="drawer-foot">
+    <button class="btn btn-ghost" id="resetBtn">Reset to original</button>
+    <button class="btn" id="saveBtn">Save</button>
+    <button class="btn btn-primary" id="saveSelectBtn">Save &amp; select</button>
+  </div>
+</aside>
+
+<div class="modal" id="loginModal">
+  <form class="modal-card" id="loginForm">
+    <img src="/static/logo.png" alt="" style="width:44px;height:44px;margin-bottom:8px">
+    <h2>Log in to WorkOwon</h2>
+    <p>Use your admin account to post jobs.</p>
+    <div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="username" required></div>
+    <div class="field"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required></div>
+    <div class="form-error" id="loginError"></div>
+    <div class="group" style="justify-content:flex-end">
+      <button type="button" class="btn btn-ghost" id="loginCancel">Cancel</button>
+      <button type="submit" class="btn btn-primary" id="loginSubmit">Log in</button>
+    </div>
+  </form>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+const ENUMS = {
+  employmentType: ["FULL_TIME", "PART_TIME", "CONTRACT", "INTERNSHIP", "FREELANCE"],
+  workplaceType: ["ONSITE", "HYBRID", "REMOTE"],
+  experienceLevel: ["ENTRY", "MID", "SENIOR", "LEAD", "EXECUTIVE"],
+  salaryPeriod: ["YEARLY", "MONTHLY", "HOURLY"],
+  proficiencyLevel: ["BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT"],
+  benefitType: ["HEALTH", "STOCK", "REMOTE", "GYM", "FOOD", "LEARNING", "VISA", "BONUS", "OTHER"],
+};
+const FILTER_KEYS = ["locations", "experience", "sectors", "companyTypes", "employmentTypes", "workplaceTypes", "companies"];
+const state = {
+  jobs: [], selected: new Set(), status: {}, session: { loggedIn: false }, editing: null,
+  filters: Object.fromEntries(FILTER_KEYS.map((k) => [k, []])), lastCriteria: null,
+};
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const pretty = (v) => /[a-z]/.test(v) ? v : String(v || "").toLowerCase().replace(/_/g, " ").replace(/^\w/, (c) => c.toUpperCase());
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+async function api(path, options = {}) {
+  const res = await fetch(path, { headers: { "Content-Type": "application/json" }, ...options });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) { const e = new Error(body.error || `Request failed (${res.status})`); e.status = res.status; throw e; }
+  return body;
+}
+
+let toastTimer;
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 3500);
+}
+
+function timeAgo(iso) {
+  if (!iso) return "";
+  const mins = Math.round((Date.now() - new Date(iso)) / 60000);
+  if (mins < 60) return mins < 1 ? "just now" : `${mins} min ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs} hr ago`;
+  const days = Math.round(hrs / 24);
+  return `${days} day${days > 1 ? "s" : ""} ago`;
+}
+
+/* ---------- session ---------- */
+function renderUser() {
+  const s = state.session;
+  $("user").innerHTML = s.loggedIn
+    ? `<span>${esc(s.email || "Logged in")}</span><button class="btn btn-sm" id="logoutBtn">Log out</button>`
+    : `<button class="btn btn-primary btn-sm" id="loginBtn">Log in</button>`;
+  if (s.loggedIn) $("logoutBtn").onclick = async () => { await api("/api/logout", { method: "POST" }); state.session = { loggedIn: false }; renderUser(); };
+  else $("loginBtn").onclick = () => openLogin();
+}
+
+let afterLogin = null;
+async function openLogin(then) {
+  afterLogin = then || null;
+  $("loginError").textContent = "";
+  $("password").type = "password";  // always masked
+  try {
+    const d = await api("/api/login-defaults");
+    if (d.email && !$("email").value) $("email").value = d.email;
+    if (d.password && !$("password").value) $("password").value = d.password;
+  } catch {}
+  $("loginModal").classList.add("open");
+  // Cursor at the end of the password so the admin just types the rest.
+  setTimeout(() => { const p = $("password"); p.focus(); p.setSelectionRange(p.value.length, p.value.length); }, 50);
+}
+$("loginCancel").onclick = () => { $("loginModal").classList.remove("open"); afterLogin = null; };
+$("loginForm").onsubmit = async (e) => {
+  e.preventDefault();
+  $("loginSubmit").disabled = true; $("loginError").textContent = "";
+  try {
+    state.session = await api("/api/login", { method: "POST", body: JSON.stringify({ email: $("email").value, password: $("password").value }) });
+    $("password").value = "";
+    $("loginModal").classList.remove("open");
+    renderUser(); toast("Logged in");
+    if (afterLogin) { const fn = afterLogin; afterLogin = null; fn(); }
+  } catch (err) { $("loginError").textContent = err.message; }
+  finally { $("loginSubmit").disabled = false; }
+};
+
+/* ---------- filters ---------- */
+function renderFilters(opts) {
+  $("posted").innerHTML = opts.postedWithin.map((d) => `<option value="${d}">${d === 1 ? "Last 24 hours" : `Last ${d} days`}</option>`).join("");
+  // Sectors and companies show their India openings, biggest first.
+  const counts = { sectors: opts.sectorOpenings || {}, companies: opts.companyOpenings || {} };
+  if (opts.sectors) opts.sectors.sort((a, b) => (counts.sectors[b] || 0) - (counts.sectors[a] || 0));
+  document.querySelectorAll("[data-filter]").forEach((box) => {
+    const key = box.dataset.filter, n = counts[key] || {};
+    box.innerHTML = (opts[key] || []).map((v) =>
+      `<button type="button" class="opt ${state.filters[key].includes(v) ? "on" : ""}" data-v="${esc(v)}">${esc(pretty(v))}${n[v] ? ` <span class="cnt">${n[v].toLocaleString("en-IN")}</span>` : ""}</button>`).join("");
+  });
+  const saved = store.get("search") || {};
+  $("keywords").value = saved.keywords || "";
+  $("posted").value = String(saved.postedWithinDays || 14);
+  $("count").value = saved.count || 10;
+}
+
+document.querySelectorAll("[data-filter]").forEach((box) => box.addEventListener("click", (e) => {
+  const btn = e.target.closest(".opt"); if (!btn) return;
+  const list = state.filters[box.dataset.filter], v = btn.dataset.v, i = list.indexOf(v);
+  i >= 0 ? list.splice(i, 1) : list.push(v);
+  btn.classList.toggle("on", i < 0);
+}));
+$("moreBtn").onclick = () => {
+  const f = $("filters"); f.classList.toggle("collapsed");
+  $("moreBtn").textContent = f.classList.contains("collapsed") ? "More filters" : "Fewer filters";
+};
+$("clearBtn").onclick = () => {
+  FILTER_KEYS.forEach((k) => (state.filters[k] = []));
+  document.querySelectorAll(".opt.on").forEach((b) => b.classList.remove("on"));
+  $("keywords").value = "";
+};
+
+function criteria() {
+  return {
+    keywords: $("keywords").value.trim(),
+    postedWithinDays: parseInt($("posted").value) || 14,
+    count: Math.max(1, Math.min(50, parseInt($("count").value) || 10)),
+    ...JSON.parse(JSON.stringify(state.filters)),
+  };
+}
+
+/* ---------- search + list ---------- */
+$("searchForm").onsubmit = (e) => { e.preventDefault(); runSearch(criteria()); };
+
+async function runSearch(c) {
+  state.lastCriteria = c; store.set("search", c);
+  $("searchBtn").disabled = true;
+  $("list").innerHTML = `<div class="empty"><span class="spinner"></span>&nbsp; Searching company career sites… the first search can take up to 30 seconds.</div>`;
+  try {
+    const data = await api("/api/search", { method: "POST", body: JSON.stringify(c) });
+    state.jobs = data.jobs; state.selected.clear(); state.status = {};
+    $("stats").textContent = `${data.matched.toLocaleString("en-IN")}+ matching jobs across ${data.companiesSearched} companies · showing ${data.jobs.length} · ${data.postedCount} posted so far`;
+    if (data.errors.length) toast(`${data.errors.length} company site(s) didn't respond and were skipped`);
+    renderList();
+  } catch (err) {
+    $("list").innerHTML = `<div class="empty">Search failed: ${esc(err.message)}</div>`;
+  } finally { $("searchBtn").disabled = false; }
+}
+
+function renderList() {
+  if (!state.jobs.length) { $("list").innerHTML = `<div class="empty">No new jobs match these filters. Try more locations, a longer date range or fewer filters.</div>`; updatePostBtn(); return; }
+  $("list").innerHTML = state.jobs.map((job) => {
+    const p = job.payload, k = job.sourceKey, st = state.status[k];
+    const loc = (p.locations || [])[0] || {};
+    const place = [loc.city, loc.state].filter(Boolean).join(", ") || loc.country || "";
+    const extraLocs = (p.locations || []).length > 1 ? ` +${p.locations.length - 1}` : "";
+    const yrs = p.experienceMinYears != null ? (p.experienceMaxYears != null ? `${p.experienceMinYears}–${p.experienceMaxYears} yrs` : `${p.experienceMinYears}+ yrs`) : "";
+    const done = st && st.type === "ok";
+    return `<div class="card ${state.selected.has(k) ? "selected" : ""} ${done ? "done" : ""}" data-key="${esc(k)}">
+      <input type="checkbox" data-act="toggle" ${state.selected.has(k) ? "checked" : ""} ${done ? "disabled" : ""} aria-label="Select job">
+      <img class="logo" src="${esc(p.externalCompanyLogoUrl || "")}" alt="" onerror="this.style.visibility='hidden'">
+      <div>
+        <p class="title" data-act="edit">${esc(p.title)}</p>
+        <div class="sub">${esc(p.externalCompanyName)}${place ? " · " + esc(place) + extraLocs : ""}${job.sourcePostedAt ? " · posted " + esc(timeAgo(job.sourcePostedAt)) : ""}</div>
+        <div class="chips">
+          ${job.sector ? `<span class="chip">${esc(job.sector)}</span>` : ""}
+          ${p.employmentType ? `<span class="chip">${esc(pretty(p.employmentType))}</span>` : ""}
+          ${p.workplaceType ? `<span class="chip">${esc(pretty(p.workplaceType))}</span>` : ""}
+          ${p.experienceLevel ? `<span class="chip">${esc(pretty(p.experienceLevel))}</span>` : ""}
+          ${yrs ? `<span class="chip">${esc(yrs)}</span>` : ""}
+          ${job.aiImproved ? `<span class="chip ai">✨ AI improved</span>` : job.edited ? `<span class="chip edited">Edited</span>` : ""}
+        </div>
+        ${st ? `<div class="status ${st.type}">${esc(st.text)}</div>` : ""}
+      </div>
+      <div class="actions">
+        ${done ? "" : `${job.aiImproved ? "" : `<button class="btn btn-ai btn-sm ${st?.type === "busy" ? "busy" : ""}" data-act="improve" title="Rewrite in your site's style with AI">${SPARKLE}Improve</button>`}<button class="btn btn-sm" data-act="edit">Review</button><button class="btn btn-ghost btn-sm" data-act="skip" title="Hide this job">Skip</button>`}
+      </div>
+    </div>`;
+  }).join("");
+  updatePostBtn();
+}
+
+$("list").addEventListener("click", async (e) => {
+  const act = e.target.dataset.act; if (!act) return;
+  const key = e.target.closest(".card").dataset.key;
+  if (act === "toggle") { e.target.checked ? state.selected.add(key) : state.selected.delete(key); renderList(); }
+  if (act === "edit") openEditor(key);
+  if (act === "improve") improveJobs([key]);
+  if (act === "skip") {
+    await api(`/api/jobs/${key}/skip`, { method: "POST" });
+    state.jobs = state.jobs.filter((j) => j.sourceKey !== key); state.selected.delete(key);
+    renderList(); toast("Job skipped. It won't show again.");
+  }
+});
+
+function updatePostBtn() {
+  const n = state.selected.size;
+  $("postBtn").disabled = n === 0;
+  $("postBtn").textContent = n ? `Post selected (${n})` : "Post selected";
+  if (!state.improving) {
+    $("improveSelectedBtn").disabled = n === 0;
+    $("improveSelectedBtn").innerHTML = `${SPARKLE}${n ? `Improve selected (${n})` : "Improve selected"}`;
+  }
+}
+
+/* ---------- AI (only ever runs from these buttons) ---------- */
+const SPARKLE = `<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2l1.9 5.6L19.5 9.5l-5.6 1.9L12 17l-1.9-5.6L4.5 9.5l5.6-1.9L12 2zm7 11l.95 2.55L22.5 16.5l-2.55.95L19 20l-.95-2.55L15.5 16.5l2.55-.95L19 13zM5 14l.7 1.8L7.5 16.5l-1.8.7L5 19l-.7-1.8L2.5 16.5l1.8-.7L5 14z"/></svg>`;
+
+function aiSummary(stats, n) {
+  const tokens = stats.inputTokens + stats.outputTokens;
+  if (!stats.calls) return `${n} job${n > 1 ? "s" : ""} improved (from saved results, no AI cost)`;
+  return `${n} job${n > 1 ? "s" : ""} improved · ${stats.calls} AI call${stats.calls > 1 ? "s" : ""} · ${tokens.toLocaleString("en-IN")} tokens`;
+}
+
+async function improveJobs(keys, fromEditor = false) {
+  if (state.improving || !keys.length) return;
+  state.improving = true;
+  const btn = fromEditor ? $("improveOneBtn") : $("improveSelectedBtn");
+  const label = btn.innerHTML;
+  btn.disabled = true; btn.classList.add("busy");
+  btn.innerHTML = `${SPARKLE}Improving${keys.length > 1 ? ` ${keys.length} jobs` : ""}…`;
+  keys.forEach((k) => (state.status[k] = { type: "busy", text: "Improving with AI…" }));
+  if (!fromEditor) renderList();
+  try {
+    // Send what the admin sees (including unsaved editor changes), so AI polishes their version.
+    const jobs = keys.map((k) => ({ sourceKey: k, payload: fromEditor ? readEditor() : state.jobs.find((j) => j.sourceKey === k).payload }));
+    const data = await api("/api/improve", { method: "POST", body: JSON.stringify({ jobs }) });
+    for (const r of data.jobs) {
+      const job = state.jobs.find((j) => j.sourceKey === r.sourceKey);
+      Object.assign(job, { payload: r.payload, edited: true, aiImproved: true });
+      delete state.status[r.sourceKey];
+    }
+    keys.filter((k) => state.status[k]?.type === "busy").forEach((k) => (state.status[k] = { type: "err", text: "AI couldn't improve this job. Try again." }));
+    toast(aiSummary(data.stats, data.jobs.length));
+    if (fromEditor && state.editing) openEditor(state.editing);
+  } catch (err) {
+    keys.forEach((k) => (state.status[k] = { type: "err", text: err.message }));
+    toast(err.message);
+  } finally {
+    state.improving = false;
+    btn.classList.remove("busy"); btn.innerHTML = label; btn.disabled = false;
+    renderList();
+  }
+}
+
+$("improveSelectedBtn").onclick = () => improveJobs(state.jobs.map((j) => j.sourceKey).filter((k) => state.selected.has(k)));
+$("improveOneBtn").onclick = () => improveJobs([state.editing], true);
+
+$("selectBtn").onclick = () => {
+  const n = Math.max(1, parseInt($("selectCount").value) || 1);
+  state.selected.clear();
+  state.jobs.filter((j) => state.status[j.sourceKey]?.type !== "ok").slice(0, n).forEach((j) => state.selected.add(j.sourceKey));
+  renderList();
+};
+
+/* ---------- posting ---------- */
+$("postBtn").onclick = () => state.session.loggedIn ? postSelected() : openLogin(postSelected);
+
+async function postSelected() {
+  const keys = state.jobs.map((j) => j.sourceKey).filter((k) => state.selected.has(k));
+  if (!keys.length) return;
+  $("postBtn").disabled = true; $("searchBtn").disabled = true;
+  let ok = 0;
+  for (const [i, key] of keys.entries()) {
+    $("postBtn").textContent = `Posting ${i + 1}/${keys.length}…`;
+    state.status[key] = { type: "busy", text: "Posting…" }; renderList();
+    const job = state.jobs.find((j) => j.sourceKey === key);
+    try {
+      const { results } = await api("/api/post", { method: "POST", body: JSON.stringify({ jobs: [{ sourceKey: key, payload: job.payload }] }) });
+      const r = results[0];
+      state.status[key] = r.ok ? { type: "ok", text: "Posted to your website ✓" } : { type: "err", text: r.message };
+      if (r.ok) { ok++; state.selected.delete(key); }
+    } catch (err) {
+      if (err.status === 401) {
+        state.status[key] = { type: "err", text: "Session expired. Log in and post again." };
+        state.session = { loggedIn: false }; renderUser(); break;
+      }
+      state.status[key] = { type: "err", text: err.message };
+    }
+    renderList();
+  }
+  $("searchBtn").disabled = false; updatePostBtn();
+  toast(`${ok} of ${keys.length} job${keys.length > 1 ? "s" : ""} posted`);
+}
+
+/* ---------- editor ---------- */
+const opt = (list, val, blank) => (blank ? `<option value="">—</option>` : "") +
+  list.map((v) => `<option value="${v}" ${v === val ? "selected" : ""}>${esc(pretty(v))}</option>`).join("");
+const input = (name, label, val, type = "text", cls = "") =>
+  `<div class="field ${cls}"><label>${label}</label><input name="${name}" type="${type}" value="${esc(val ?? "")}"></div>`;
+const select = (name, label, list, val, blank) =>
+  `<div class="field"><label>${label}</label><select name="${name}">${opt(list, val, blank)}</select></div>`;
+// The HTML comes from our own server, which strips it to p/strong/ul/li before sending.
+const rich = (name, html) => `<div class="rich-wrap">
+    <div class="rich-tools" data-for="${name}">
+      <button type="button" data-cmd="bold" title="Bold"><b>B</b></button>
+      <button type="button" data-cmd="insertUnorderedList" title="Bullet list">• List</button>
+      <button type="button" data-cmd="heading" title="Section title">Section title</button>
+      <button type="button" data-cmd="removeFormat" title="Clear formatting">Clear</button>
+    </div>
+    <div class="rich" contenteditable="true" data-rich="${name}">${html || ""}</div></div>`;
+
+const rowTemplates = {
+  loc: (l = {}) => `<div class="row" data-row="loc">
+      <input placeholder="City" data-f="city" value="${esc(l.city)}"><input placeholder="State" data-f="state" value="${esc(l.state)}">
+      <input placeholder="Country" data-f="country" value="${esc(l.country || "India")}">
+      <label class="check"><input type="checkbox" data-f="remote" ${l.remote ? "checked" : ""}>Remote</label>
+      <button type="button" class="btn btn-ghost btn-sm x" data-del>✕</button></div>`,
+  skill: (s = {}) => `<div class="row" data-row="skill">
+      <input placeholder="Skill" data-f="skillName" value="${esc(s.skillName)}">
+      <select data-f="proficiencyLevel">${opt(ENUMS.proficiencyLevel, s.proficiencyLevel || "INTERMEDIATE")}</select>
+      <label class="check"><input type="checkbox" data-f="required" ${s.required !== false ? "checked" : ""}>Required</label>
+      <button type="button" class="btn btn-ghost btn-sm x" data-del>✕</button></div>`,
+  benefit: (b = {}) => `<div class="row" data-row="benefit">
+      <select data-f="benefitType" style="max-width:140px">${opt(ENUMS.benefitType, b.benefitType || "OTHER")}</select>
+      <input placeholder="Description" data-f="description" value="${esc(b.description)}">
+      <button type="button" class="btn btn-ghost btn-sm x" data-del>✕</button></div>`,
+};
+
+function openEditor(key) {
+  const job = state.jobs.find((j) => j.sourceKey === key); if (!job) return;
+  state.editing = key;
+  const p = job.payload;
+  $("drawerTitle").textContent = p.title || "Review job";
+  $("sourceLink").href = p.externalListingUrl;
+  $("editor").innerHTML = `
+    <div class="section"><h3>Basics</h3><div class="grid">
+      ${input("title", "Job title", p.title, "text", "full")}
+      ${input("externalCompanyName", "Company", p.externalCompanyName)}
+      ${input("externalCompanyWebsite", "Company website", p.externalCompanyWebsite, "url")}
+      ${input("externalCompanyLogoUrl", "Logo URL", p.externalCompanyLogoUrl, "url")}
+      ${input("externalListingUrl", "Apply / listing URL", p.externalListingUrl, "url")}
+    </div></div>
+    <div class="section"><h3>Description</h3>${rich("description", p.description)}</div>
+    <div class="section"><h3>Requirements</h3>${rich("requirements", p.requirements)}</div>
+    <div class="section"><h3>Role</h3><div class="grid grid-3">
+      ${select("employmentType", "Employment type", ENUMS.employmentType, p.employmentType)}
+      ${select("workplaceType", "Workplace", ENUMS.workplaceType, p.workplaceType)}
+      ${select("experienceLevel", "Experience level", ENUMS.experienceLevel, p.experienceLevel, true)}
+      ${input("experienceMinYears", "Min years", p.experienceMinYears, "number")}
+      ${input("experienceMaxYears", "Max years", p.experienceMaxYears, "number")}
+      ${input("openings", "Openings", p.openings ?? 1, "number")}
+      ${input("expiresAt", "Expires on", (p.expiresAt || "").slice(0, 10), "date")}
+    </div></div>
+    <div class="section"><h3>Salary</h3><div class="grid grid-3">
+      ${input("salaryMin", "Min", p.salaryMin, "number")}
+      ${input("salaryMax", "Max", p.salaryMax, "number")}
+      ${input("salaryCurrency", "Currency", p.salaryCurrency || "INR")}
+      ${select("salaryPeriod", "Period", ENUMS.salaryPeriod, p.salaryPeriod || "YEARLY")}
+      <label class="check" style="align-self:end;padding-bottom:8px"><input type="checkbox" name="salaryVisible" ${p.salaryVisible ? "checked" : ""}>Show salary</label>
+    </div></div>
+    <div class="section"><h3>Locations</h3><div class="rows" id="locRows">${(p.locations || []).map(rowTemplates.loc).join("")}</div>
+      <button type="button" class="link" style="margin-top:10px" data-add="loc">+ Add location</button></div>
+    <div class="section"><h3>Skills</h3><div class="rows" id="skillRows">${(p.skills || []).map(rowTemplates.skill).join("")}</div>
+      <button type="button" class="link" style="margin-top:10px" data-add="skill">+ Add skill</button></div>
+    <div class="section"><h3>Benefits</h3><div class="rows" id="benefitRows">${(p.benefits || []).map(rowTemplates.benefit).join("")}</div>
+      <button type="button" class="link" style="margin-top:10px" data-add="benefit">+ Add benefit</button></div>
+    <div class="section"><h3>Tags</h3>
+      ${input("tags", "Comma separated", (p.tags || []).join(", "), "text", "full")}</div>`;
+  $("overlay").classList.add("open"); $("drawer").classList.add("open"); $("drawer").setAttribute("aria-hidden", "false");
+  $("editor").scrollTop = 0;
+}
+
+$("editor").addEventListener("mousedown", (e) => {
+  // Keep the text selection inside the editor while clicking toolbar buttons.
+  const btn = e.target.closest(".rich-tools button"); if (!btn) return;
+  e.preventDefault();
+  const cmd = btn.dataset.cmd;
+  if (cmd === "heading") { document.execCommand("formatBlock", false, "p"); document.execCommand("bold"); }
+  else document.execCommand(cmd);
+});
+$("editor").addEventListener("click", (e) => {
+  if (e.target.dataset.del !== undefined) e.target.closest(".row").remove();
+  const add = e.target.dataset.add;
+  if (add) $({ loc: "locRows", skill: "skillRows", benefit: "benefitRows" }[add]).insertAdjacentHTML("beforeend", rowTemplates[add]());
+});
+
+function readEditor() {
+  const job = state.jobs.find((j) => j.sourceKey === state.editing);
+  const root = $("editor"), val = (n) => root.querySelector(`[name="${n}"]`);
+  const num = (n) => (val(n).value === "" ? null : Number(val(n).value));
+  const str = (n) => val(n).value.trim();
+  const richVal = (n) => { const el = root.querySelector(`[data-rich="${n}"]`); return el.textContent.trim() ? el.innerHTML : ""; };
+  const rows = (type) => [...root.querySelectorAll(`[data-row="${type}"]`)].map((r) => {
+    const o = {}; r.querySelectorAll("[data-f]").forEach((el) => (o[el.dataset.f] = el.type === "checkbox" ? el.checked : el.value.trim())); return o;
+  });
+  const p = {
+    ...job.payload,
+    title: str("title"), externalCompanyName: str("externalCompanyName"),
+    externalCompanyWebsite: str("externalCompanyWebsite"), externalCompanyLogoUrl: str("externalCompanyLogoUrl"),
+    externalListingUrl: str("externalListingUrl"),
+    description: richVal("description"), requirements: richVal("requirements"),
+    employmentType: str("employmentType"), workplaceType: str("workplaceType"), experienceLevel: str("experienceLevel") || null,
+    experienceMinYears: num("experienceMinYears"), experienceMaxYears: num("experienceMaxYears"),
+    openings: num("openings") || 1,
+    expiresAt: str("expiresAt") ? new Date(str("expiresAt") + "T23:59:59Z").toISOString() : null,
+    salaryMin: num("salaryMin"), salaryMax: num("salaryMax"),
+    salaryCurrency: str("salaryCurrency") || null, salaryPeriod: str("salaryPeriod") || null,
+    salaryVisible: val("salaryVisible").checked,
+    locations: rows("loc").filter((l) => l.city || l.country || l.remote).map((l) => ({ ...l, state: l.state || null })),
+    skills: rows("skill").filter((s) => s.skillName).map((s, i) => ({ ...s, orderIndex: i })),
+    benefits: rows("benefit").filter((b) => b.description),
+    tags: str("tags").split(",").map((t) => t.trim()).filter(Boolean),
+  };
+  // Drop empty optional values so the API doesn't receive blanks/nulls.
+  Object.keys(p).forEach((k) => (p[k] === null || p[k] === "") && delete p[k]);
+  return p;
+}
+
+function closeEditor() {
+  $("overlay").classList.remove("open"); $("drawer").classList.remove("open");
+  $("drawer").setAttribute("aria-hidden", "true"); state.editing = null;
+}
+
+async function saveEditor(selectAfter) {
+  const key = state.editing, payload = readEditor();
+  if (!payload.title || !payload.externalCompanyName || !payload.description) return toast("Title, company and description are required.");
+  try {
+    await api(`/api/jobs/${key}`, { method: "PUT", body: JSON.stringify({ payload }) });
+    const job = state.jobs.find((j) => j.sourceKey === key);
+    job.payload = payload; job.edited = true;
+    if (selectAfter) state.selected.add(key);
+    closeEditor(); renderList(); toast("Saved");
+  } catch (err) { toast(err.message); }
+}
+
+$("saveBtn").onclick = () => saveEditor(false);
+$("saveSelectBtn").onclick = () => saveEditor(true);
+$("resetBtn").onclick = async () => {
+  const key = state.editing;
+  await api(`/api/jobs/${key}/edit`, { method: "DELETE" });
+  closeEditor(); toast("Edits removed. Reloading…");
+  if (state.lastCriteria) runSearch(state.lastCriteria);
+};
+$("closeDrawer").onclick = closeEditor;
+$("overlay").onclick = closeEditor;
+document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeEditor(); $("loginModal").classList.remove("open"); } });
+
+/* ---------- init ---------- */
+$("improveOneBtn").innerHTML = `${SPARKLE}Improve with AI`;
+updatePostBtn();
+(async () => {
+  const saved = store.get("search") || {};
+  FILTER_KEYS.forEach((k) => (state.filters[k] = Array.isArray(saved[k]) ? saved[k] : []));
+  try { renderFilters(await api("/api/options")); } catch (err) { toast("Couldn't load filters: " + err.message); }
+  try { state.session = await api("/api/session"); } catch { state.session = { loggedIn: false }; }
+  renderUser();
+})();
+</script>
+</body>
+</html>
