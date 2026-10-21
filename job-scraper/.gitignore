@@ -1,8 +1,0 @@
-.env
-.venv/
-posted_jobs.json
-curated_jobs.json
-.session.json
-edits.json
-skipped.json
-__pycache__/
