@@ -6,6 +6,7 @@
 <title>WorkOwon JobSync</title>
 <link rel="icon" type="image/png" href="/static/favicon.png">
 <link rel="stylesheet" href="/static/fun.css">
+<link rel="stylesheet" href="/static/superfun.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -178,6 +179,7 @@
     <div class="brand"><img class="brand-logo" src="/static/logo.png" alt="">WorkOwon <span class="brand-sub">JobSync</span></div>
     <div class="group">
       <button class="btn btn-sm fun-btn" id="funBtn" title="Animals, weather, surprises and memes while you work">🎉 Fun Zone</button>
+      <button class="btn btn-sm sf-btn" id="superFunBtn" title="Disco, a cursor buddy, XP levels, achievements and secret words">🚀 Super Fun</button>
       <div class="user" id="user"></div>
     </div>
   </div>
@@ -259,6 +261,7 @@
 <div class="toast" id="toast"></div>
 
 <script src="/static/fun.js"></script>
+<script src="/static/superfun.js"></script>
 <script>
 const ENUMS = {
   employmentType: ["FULL_TIME", "PART_TIME", "CONTRACT", "INTERNSHIP", "FREELANCE"],
@@ -446,6 +449,7 @@ $("list").addEventListener("click", async (e) => {
     await api(`/api/jobs/${key}/skip`, { method: "POST" });
     state.jobs = state.jobs.filter((j) => j.sourceKey !== key); state.selected.delete(key);
     renderList(); toast("Job skipped. It won't show again.");
+    dispatchEvent(new CustomEvent("jobsync:skipped"));
   }
 });
 
@@ -498,6 +502,7 @@ async function improveJobs(keys, fromEditor = false) {
     toast(aiSummary(data.stats, data.jobs.length));
     const r = btn.getBoundingClientRect();
     window.Fun?.sparkle(r.left + r.width / 2, r.top + r.height / 2);
+    if (data.stats.calls) dispatchEvent(new CustomEvent("jobsync:improved", { detail: { count: data.jobs.length } }));
     if (fromEditor && state.editing) openEditor(state.editing);
   } catch (err) {
     keys.forEach((k) => (state.status[k] = { type: "err", text: err.message }));
@@ -535,7 +540,10 @@ async function postSelected() {
       const { results } = await api("/api/post", { method: "POST", body: JSON.stringify({ jobs: [{ sourceKey: key, payload: job.payload }] }) });
       const r = results[0];
       state.status[key] = r.ok ? { type: "ok", text: "Posted to your website ✓" } : { type: "err", text: r.message };
-      if (r.ok) { ok++; state.selected.delete(key); renderList(); window.Fun?.celebrate(...cardPoint(key)); }
+      if (r.ok) {
+        ok++; state.selected.delete(key); renderList(); window.Fun?.celebrate(...cardPoint(key));
+        dispatchEvent(new CustomEvent("jobsync:posted", { detail: { title: job.payload.title } }));
+      }
     } catch (err) {
       if (err.status === 401) {
         state.status[key] = { type: "err", text: "Session expired. Log in and post again." };
@@ -687,6 +695,7 @@ async function saveEditor(selectAfter) {
     job.payload = payload; job.edited = true;
     if (selectAfter) state.selected.add(key);
     closeEditor(); renderList(); toast("Saved");
+    dispatchEvent(new CustomEvent("jobsync:saved"));
   } catch (err) { toast(err.message); }
 }
 
@@ -703,9 +712,21 @@ $("overlay").onclick = closeEditor;
 document.addEventListener("keydown", (e) => { if (e.key === "Escape") { closeEditor(); $("loginModal").classList.remove("open"); } });
 
 /* ---------- fun zone ---------- */
-function renderFunBtn() { $("funBtn").textContent = window.Fun?.enabled() ? "🎉 Fun Zone: on" : "🎉 Fun Zone"; }
-$("funBtn").onclick = () => { const on = Fun.toggle(); renderFunBtn(); toast(on ? "Fun Zone on 🎉 Animals are clocking in." : "Fun Zone off. Back to business 💼"); };
+function renderFunBtn() {
+  $("funBtn").textContent = window.Fun?.enabled() ? "🎉 Fun Zone: on" : "🎉 Fun Zone";
+  $("superFunBtn").textContent = window.SuperFun?.enabled() ? "🚀 Super Fun: ON" : "🚀 Super Fun";
+}
+$("funBtn").onclick = () => {
+  const on = Fun.toggle();
+  if (!on) window.SuperFun?.stopIfOn();  // Super Fun needs Fun Zone underneath
+  renderFunBtn(); toast(on ? "Fun Zone on 🎉 Animals are clocking in." : "Fun Zone off. Back to business 💼");
+};
+$("superFunBtn").onclick = () => {
+  const on = SuperFun.toggle();
+  renderFunBtn(); toast(on ? "🚀 SUPER FUN unlocked. Post jobs to level up!" : "Super Fun off. The disco ball rests 🪩");
+};
 window.Fun?.init();
+window.SuperFun?.init();
 renderFunBtn();
 
 /* ---------- init ---------- */

@@ -216,5 +216,12 @@
   function toggle() { const on = !enabled(); on ? start() : stop(); store.set(on); return on; }
 
   document.addEventListener("visibilitychange", () => { if (!document.hidden && enabled() && active === 0) walker(); });
-  window.Fun = { enabled, toggle, mountMemes, celebrate, sparkle, events: EVENTS, init() { if (store.get()) start(); } };
+  window.Fun = {
+    enabled, toggle, mountMemes, celebrate, sparkle, events: EVENTS,
+    // building blocks for Super Fun (superfun.js)
+    el, spawn, banner, walker, flyAcross, burst, rand, pick, reduced,
+    start() { if (!enabled()) { start(); store.set(true); } },
+    stop() { if (enabled()) { stop(); store.set(false); } },
+    init() { if (store.get()) start(); },
+  };
 })();
