@@ -8,13 +8,18 @@ then open http://127.0.0.1:5050
 """
 from __future__ import annotations
 
+import html
 import json
 import logging
 import os
+import random
+import re
+import time
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
 
+import requests
 from flask import Flask, jsonify, request, send_from_directory
 
 from curate import curate_jobs, new_stats, payload_to_input
@@ -127,6 +132,33 @@ def login():
 def logout():
     client.logout()
     return jsonify({"loggedIn": False})
+
+
+MEME_SUBREDDITS = ["wholesomememes", "ProgrammerHumor", "Catmemes", "recruitinghell"]
+MEME_CACHE_SECONDS = 10 * 60
+_memes: dict = {"at": 0.0, "items": []}
+
+
+@app.get("/api/memes")
+def memes():
+    """Fun Zone loading memes: safe-for-work picks from a public meme API, cached for 10 minutes."""
+    if time.time() - _memes["at"] > MEME_CACHE_SECONDS or not _memes["items"]:
+        items = []
+        for sub in MEME_SUBREDDITS:
+            try:
+                data = requests.get(f"https://meme-api.com/gimme/{sub}/15", timeout=8).json()
+            except (requests.RequestException, ValueError):
+                continue
+            for m in data.get("memes") or []:
+                url = m.get("url") or ""
+                if m.get("nsfw") or m.get("spoiler") or not re.search(r"\.(png|jpe?g|gif|webp)$", url, re.I):
+                    continue
+                items.append({"title": html.unescape(m.get("title") or ""), "url": url,
+                              "subreddit": m.get("subreddit"), "link": m.get("postLink")})
+        if items:
+            random.shuffle(items)
+            _memes.update(at=time.time(), items=items)
+    return jsonify({"memes": _memes["items"]})
 
 
 @app.get("/api/options")

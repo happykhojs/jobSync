@@ -8,6 +8,7 @@ Find the latest jobs in India from 100+ company career sites, review and edit th
 - **Review & edit** every field before posting: title, rich-text description and requirements, experience, salary, locations, skills, benefits, tags.
 - **AI on demand**: the ✨ Improve buttons rewrite jobs in the WorkOwon style with Gemini. AI is never used unless you click one; results are cached so a job is never paid for twice.
 - **Post** selected jobs to the WorkOwon admin API (login with email/password, tokens refresh automatically).
+- **🎉 Fun Zone** (optional toggle): animals strolling, surprise weather and events, memes while searching, confetti when a job is posted. Everything is click-through and stays out of the way of posting.
 
 ## Setup
 
@@ -39,6 +40,7 @@ Open http://127.0.0.1:5050, log in with your WorkOwon admin account, search, rev
 |---|---|
 | `app.py` | Dashboard server (Flask) |
 | `static/index.html` | Dashboard UI |
+| `static/fun.js`, `static/fun.css` | Fun Zone |
 | `search.py` | Search across the company catalog |
 | `job_scraper.py` | Career-site scrapers |
 | `enrich.py` | Rule-based extraction (experience, skills, benefits, locations) |
