@@ -1,0 +1,85 @@
+/* Super Fun chaos: blossoms, button pranks, giant takeovers, train, hunts, flood, the player dino. */
+
+/* cherry blossoms framing the top (behind the panels, visible in the margins) */
+.sf-blossom-layer { position: fixed; inset: 0; z-index: 1; pointer-events: none; overflow: hidden; }
+.sf-blossom { position: absolute; top: 56px; width: min(46vw, 620px); height: min(31vw, 420px);
+  background: url("/static/blossoms.png") no-repeat; background-size: 100% auto; mix-blend-mode: multiply; opacity: .95; }
+.sf-blossom.left { left: 0; background-position: left top; }
+.sf-blossom.right { right: 0; background-position: left top; transform: scaleX(-1); }
+.sf-petal { position: absolute; top: 40px; font-size: 16px; animation: sf-petal linear forwards; }
+
+/* sound toggle */
+.sf-mute { padding: 4px 10px !important; }
+
+/* button pranks */
+.sf-prank-clone { position: fixed; z-index: 42; pointer-events: none; margin: 0; }
+.sf-boom { position: fixed; z-index: 43; pointer-events: none; font-size: 64px; transform: translate(-50%, -50%); animation: sf-boom .7s ease-out forwards; }
+.sf-bird { position: fixed; z-index: 43; pointer-events: none; font-size: 34px; transform: translate(-50%, -50%) scaleX(-1); }
+.sf-return { animation: sf-return .5s cubic-bezier(.3, 1.8, .5, 1); }
+
+/* giant animal takeover + train: the only effects that pause clicks, for a few seconds */
+.sf-takeover { position: fixed; inset: 0; z-index: 45; display: flex; align-items: center; justify-content: center;
+  background: radial-gradient(circle, rgba(0, 0, 0, .15), rgba(0, 0, 0, .55)); animation: sf-fadeinout 2.6s ease forwards; cursor: wait; }
+.sf-takeover .giant { font-size: 78vmin; line-height: 1; animation: sf-giant 2.6s cubic-bezier(.2, 1.4, .4, 1) forwards; }
+.sf-takeover .label { position: absolute; bottom: 12vh; left: 50%; transform: translateX(-50%); color: #fff;
+  font: 900 34px "IBM Plex Sans", sans-serif; text-shadow: 3px 3px 0 #000; white-space: nowrap; }
+body.sf-shake main, body.sf-shake header { animation: sf-shake .12s linear 12; }
+
+.sf-crossing { position: fixed; inset: 0; z-index: 45; cursor: wait; background: rgba(0, 0, 0, .12); }
+.sf-track { position: absolute; left: 0; right: 0; top: calc(50% + 52px); height: 14px;
+  background: repeating-linear-gradient(90deg, #6b4423 0 10px, transparent 10px 28px), linear-gradient(#999, #999) 0 3px / 100% 3px no-repeat,
+    linear-gradient(#999, #999) 0 10px / 100% 3px no-repeat; }
+.sf-train { position: absolute; top: calc(50% - 60px); left: 0; font-size: 110px; line-height: 1; white-space: nowrap; will-change: transform; }
+.sf-crossing .label { position: absolute; top: calc(50% + 90px); left: 50%; transform: translateX(-50%); background: #ffd635; color: #1a1a1b;
+  font: 800 16px "IBM Plex Sans", sans-serif; padding: 6px 14px; border: 3px solid #1a1a1b; border-radius: 8px; }
+.sf-smoke { position: absolute; font-size: 40px; animation: sf-smoke 1.4s ease-out forwards; opacity: .8; }
+
+/* hunts at the bottom */
+.sf-runner { position: absolute; bottom: 18px; font-size: 36px; will-change: transform; z-index: 1; }
+.sf-runner .bod { display: inline-block; animation: fun-hop .28s ease-in-out infinite; }
+.sf-runner.flip .bod { transform: scaleX(-1); }
+.sf-runner.big { font-size: 64px; bottom: 14px; }
+.sf-caveman { position: relative; display: inline-block; }
+.sf-caveman .club { position: absolute; top: -14px; left: -10px; font-size: 26px; transform: rotate(-35deg); animation: sf-club .3s ease-in-out infinite alternate; }
+
+/* flood */
+.sf-water { position: fixed; left: 0; right: 0; bottom: 0; height: 0; z-index: 7; pointer-events: none; overflow: hidden;
+  background: linear-gradient(180deg, rgba(64, 164, 255, .55), rgba(12, 84, 170, .82)); transition: height 9s ease-in-out; }
+.sf-water::before { content: ""; position: absolute; left: -50%; top: -14px; width: 200%; height: 28px;
+  background: radial-gradient(ellipse at 50% 100%, rgba(64, 164, 255, .55) 60%, transparent 62%) 0 0 / 60px 28px repeat-x;
+  animation: sf-wave 3s linear infinite; }
+.sf-water .swimmer { position: absolute; font-size: 32px; animation: sf-swim linear infinite; }
+.sf-water .duck { position: absolute; top: -26px; font-size: 34px; animation: sf-bob 2s ease-in-out infinite, sf-float 22s linear infinite; }
+.sf-storm { position: fixed; inset: 0; z-index: 8; pointer-events: none; overflow: hidden; }
+.sf-storm i { position: absolute; top: -30px; width: 2px; height: 22px; background: linear-gradient(transparent, rgba(40, 110, 200, .8));
+  animation: sf-rainfall linear infinite; }
+.sf-flash { position: fixed; inset: 0; z-index: 9; pointer-events: none; background: #fff; animation: sf-flash .5s ease-out forwards; }
+
+/* the player's dino */
+.sf-player { position: fixed; left: 0; bottom: 18px; z-index: 6; font-size: 40px; pointer-events: none; will-change: transform; }
+.sf-player .bod { display: inline-block; }
+.sf-player.right .bod { transform: scaleX(-1); }
+.sf-player.walking .bod { animation: fun-hop .25s ease-in-out infinite; }
+.sf-player .tag { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); font: 700 10px "IBM Plex Sans", sans-serif;
+  background: #1a1a1b; color: #fff; padding: 1px 6px; border-radius: 6px; white-space: nowrap; }
+
+@keyframes sf-petal { to { transform: translate(var(--dx, 60px), 105vh) rotate(var(--rot, 540deg)); opacity: .2; } }
+@keyframes sf-boom { from { transform: translate(-50%, -50%) scale(.3); opacity: 1; } to { transform: translate(-50%, -50%) scale(2.2); opacity: 0; } }
+@keyframes sf-return { 0% { transform: scale(.2); } 100% { transform: scale(1); } }
+@keyframes sf-fadeinout { 0% { opacity: 0; } 12%, 85% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes sf-giant { 0% { transform: scale(.1) rotate(-10deg); } 30% { transform: scale(1.08) rotate(3deg); } 50% { transform: scale(1) rotate(-2deg); }
+  80% { transform: scale(1.04) rotate(1deg); } 100% { transform: scale(1.6) translateY(20vh); } }
+@keyframes sf-shake { 0%, 100% { transform: translate(0, 0); } 25% { transform: translate(-6px, 3px); } 75% { transform: translate(6px, -3px); } }
+@keyframes sf-smoke { from { transform: translate(0, 0) scale(.6); opacity: .8; } to { transform: translate(40px, -90px) scale(1.8); opacity: 0; } }
+@keyframes sf-club { from { transform: rotate(-55deg); } to { transform: rotate(10deg); } }
+@keyframes sf-wave { to { transform: translateX(60px); } }
+@keyframes sf-swim { from { transform: translateX(-80px); } to { transform: translateX(calc(100vw + 80px)); } }
+@keyframes sf-bob { 0%, 100% { translate: 0 0; } 50% { translate: 0 -6px; } }
+@keyframes sf-float { from { left: 105%; } to { left: -10%; } }
+@keyframes sf-rainfall { to { transform: translate(-30px, 110vh); } }
+@keyframes sf-flash { from { opacity: .85; } to { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sf-takeover, .sf-crossing, .sf-storm, .sf-runner, .sf-petal { display: none !important; }
+  .sf-water { transition: none; }
+}

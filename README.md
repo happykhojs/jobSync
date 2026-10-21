@@ -9,7 +9,7 @@ Find the latest jobs in India from 100+ company career sites, review and edit th
 - **AI on demand**: the ✨ Improve buttons rewrite jobs in the WorkOwon style with Gemini. AI is never used unless you click one; results are cached so a job is never paid for twice.
 - **Post** selected jobs to the WorkOwon admin API (login with email/password, tokens refresh automatically).
 - **🎉 Fun Zone** (optional toggle): animals strolling, surprise weather and events, memes while searching, confetti when a job is posted. Everything is click-through and stays out of the way of posting.
-- **🚀 Super Fun** (on top of Fun Zone): disco sky, a cursor buddy, recruiter XP levels and combos for posting, hidden achievements, and secret words (try typing `meow`, `party`, `hire` or `boom` outside a text box… or the Konami code).
+- **🚀 Super Fun** (on top of Fun Zone): anything can happen. Buttons sometimes blast, turn into birds or vanish (they come back and still do their job), giant animals take over the screen, a train crosses the middle, hunts and cavemen run along the bottom, floods rise over the jobs, cherry blossoms frame the top, synth sounds (🔊 toggle), a 🦖 you steer with ← → ↑ to rescue animals and catch coins, plus recruiter XP, combos, achievements and secret words (`meow`, `party`, `hire`, `boom`, the Konami code).
 
 ## Setup
 
@@ -42,7 +42,8 @@ Open http://127.0.0.1:5050, log in with your WorkOwon admin account, search, rev
 | `app.py` | Dashboard server (Flask) |
 | `static/index.html` | Dashboard UI |
 | `static/fun.js`, `static/fun.css` | Fun Zone |
-| `static/superfun.js`, `static/superfun.css` | Super Fun |
+| `static/superfun.js`, `static/superfun.css` | Super Fun: XP, levels, achievements, secret words |
+| `static/chaos.js`, `static/chaos.css` | Super Fun chaos: pranks, takeovers, train, hunts, flood, sounds, the dino |
 | `search.py` | Search across the company catalog |
 | `job_scraper.py` | Career-site scrapers |
 | `enrich.py` | Rule-based extraction (experience, skills, benefits, locations) |

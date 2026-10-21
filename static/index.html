@@ -7,6 +7,7 @@
 <link rel="icon" type="image/png" href="/static/favicon.png">
 <link rel="stylesheet" href="/static/fun.css">
 <link rel="stylesheet" href="/static/superfun.css">
+<link rel="stylesheet" href="/static/chaos.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -179,7 +180,7 @@
     <div class="brand"><img class="brand-logo" src="/static/logo.png" alt="">WorkOwon <span class="brand-sub">JobSync</span></div>
     <div class="group">
       <button class="btn btn-sm fun-btn" id="funBtn" title="Animals, weather, surprises and memes while you work">🎉 Fun Zone</button>
-      <button class="btn btn-sm sf-btn" id="superFunBtn" title="Disco, a cursor buddy, XP levels, achievements and secret words">🚀 Super Fun</button>
+      <button class="btn btn-sm sf-btn" id="superFunBtn" title="Anything can happen: pranks, giant animals, floods, a dino you control, sounds, XP and secret words">🚀 Super Fun</button>
       <div class="user" id="user"></div>
     </div>
   </div>
@@ -262,6 +263,7 @@
 
 <script src="/static/fun.js"></script>
 <script src="/static/superfun.js"></script>
+<script src="/static/chaos.js"></script>
 <script>
 const ENUMS = {
   employmentType: ["FULL_TIME", "PART_TIME", "CONTRACT", "INTERNSHIP", "FREELANCE"],
@@ -723,7 +725,7 @@ $("funBtn").onclick = () => {
 };
 $("superFunBtn").onclick = () => {
   const on = SuperFun.toggle();
-  renderFunBtn(); toast(on ? "🚀 SUPER FUN unlocked. Post jobs to level up!" : "Super Fun off. The disco ball rests 🪩");
+  renderFunBtn(); toast(on ? "🚀 SUPER FUN: anything can happen now. Buttons may run away (they come back!)" : "Super Fun off. The disco ball rests 🪩");
 };
 window.Fun?.init();
 window.SuperFun?.init();

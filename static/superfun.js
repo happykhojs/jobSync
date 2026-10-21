@@ -1,5 +1,6 @@
-/* Super Fun: disco sky, a cursor buddy, recruiter XP/levels, achievements and secret words.
-   Builds on Fun Zone (fun.js). Listens to "jobsync:*" events from the app; never changes job data. */
+/* Super Fun: disco sky, recruiter XP/levels, achievements and secret words.
+   Builds on Fun Zone (fun.js); the wilder chaos (pranks, takeovers, floods, the dino) lives in chaos.js.
+   Listens to "jobsync:*" events from the app; never changes job data. */
 (() => {
   const F = window.Fun;
   if (!F) return;
@@ -25,16 +26,15 @@
     ai: ["🤖", "AI Whisperer", "Improved 10 jobs with AI"],
     meow: ["🐈", "Cat Summoner", "Found a secret word"],
     konami: ["🕹️", "Old School", "Entered the Konami code"],
-  };
-  const BUDDY_LINES = {
-    post: ["Do it! 🚀", "Post it post it post it", "That one's a keeper 💼", "Click me… I mean that 👉"],
-    ai: ["✨ Make it pretty!", "AI time? Ooh fancy", "Sprinkle some magic ✨"],
-    idle: ["*purrs*", "Where'd you go? 👀", "I could nap here…", "Psst… type 'meow' 🤫", "Any jobs for cats?"],
+    hero: ["🦸", "Wildlife Hero", "Saved an animal from a hunter"],
+    collector: ["🪙", "Coin Collector", "Caught 10 coins with your dino"],
+    flood: ["🌊", "Flood Survivor", "Kept working through a flood"],
+    pranked: ["🤡", "Pranked", "A button ran away from you"],
   };
 
   let stats = load(STATS, { xp: 0, posted: 0, improved: 0, unlocked: {}, lastPost: 0, combo: 0 });
-  let on = false, disco, ball, buddy, hud, timers = [], mouse = { x: innerWidth / 2, y: innerHeight / 2 }, pos = { x: innerWidth / 2, y: innerHeight / 2 };
-  let lastTrail = 0, lastMove = Date.now(), lastSay = 0, raf = 0;
+  let on = false, disco, ball, hud, timers = [];
+  let lastTrail = 0;
 
   const level = (xp = stats.xp) => {
     let i = 0;
@@ -97,7 +97,6 @@
       if (h >= 22 || h < 4) unlock("owl");
       if (h >= 5 && h < 8) unlock("bird");
       if (/intern|trainee|apprentice/i.test(detail.title || "")) unlock("intern");
-      say(pick(["YESSS 🎉", "Another one! 🙌", "Hired-ish! 💼", "*happy meow* 🐈"]), 2500);
     }
     if (kind === "improved") { stats.improved += detail.count || 1; if (stats.improved >= 10) unlock("ai"); }
     save(STATS, stats);
@@ -109,39 +108,24 @@
     }
   }
 
-  /* ---------- cursor buddy ---------- */
-  function say(text, ms = 2200) {
-    if (!buddy || Date.now() - lastSay < 1500) return;
-    lastSay = Date.now();
-    buddy.querySelector(".fun-bubble")?.remove();
-    const b = el("fun-bubble", text);
-    buddy.appendChild(b);
-    setTimeout(() => b.remove(), ms);
+  /* ---------- bonus XP from chaos.js (saving animals, catching coins) ---------- */
+  function bonus(xp, message) {
+    if (!on) return;
+    const before = level();
+    stats.xp += xp; save(STATS, stats); renderHud();
+    if (message) F.banner(message);
+    const after = level();
+    if (after.n > before.n) { fireworks(4); F.banner(`⬆️ LEVEL UP! You're now a ${after.name}`); }
   }
-  function tick() {
-    // Follow the cursor at a distance, so the buddy never sits right under the pointer.
-    const tx = mouse.x - 46, ty = mouse.y + 18;
-    pos.x += (tx - pos.x) * 0.08; pos.y += (ty - pos.y) * 0.08;
-    if (buddy) {
-      buddy.style.transform = `translate(${pos.x}px, ${pos.y}px)`;
-      buddy.classList.toggle("flip", tx > pos.x + 2);
-    }
-    raf = requestAnimationFrame(tick);
-  }
+
+  /* ---------- sparkle trail ---------- */
   function onMove(e) {
-    mouse = { x: e.clientX, y: e.clientY }; lastMove = Date.now();
     if (!F.reduced && Date.now() - lastTrail > 45) {
       lastTrail = Date.now();
       const t = el("sf-trail", pick(["✨", "⭐", "💫", "·"]), { left: `${e.clientX}px`, top: `${e.clientY}px` });
       document.body.appendChild(t); setTimeout(() => t.remove(), 800);
     }
   }
-  function onOver(e) {
-    const t = e.target.closest?.("button"); if (!t) return;
-    if (t.id === "postBtn" && !t.disabled) say(pick(BUDDY_LINES.post));
-    else if (t.classList.contains("btn-ai")) say(pick(BUDDY_LINES.ai));
-  }
-
   /* ---------- big surprises ---------- */
   const BIG = {
     stampede() { F.banner("🐈🐈🐈 CAT STAMPEDE!"); for (let i = 0; i < 10; i++) setTimeout(() => F.walker(pick(["🐈", "🐈‍⬛", "🐆", "🐅"]), false), i * 250); },
@@ -188,28 +172,25 @@
     back.appendChild(disco);
     ball = el("sf-disco", `<div class="string"></div><span class="ball">🪩</span>`);
     document.querySelector("header .brand").appendChild(ball);
-    buddy = el("sf-buddy", `<span class="bod">${pick(["🐈", "🐈‍⬛", "🐕", "🦊", "🐧"])}</span>`);
     hud = el("sf-hud");
-    document.body.append(buddy);
     // HUD lives in the header next to the fun buttons.
     document.getElementById("superFunBtn").after(hud);
     renderHud();
     addEventListener("mousemove", onMove, { passive: true });
-    document.addEventListener("mouseover", onOver);
     addEventListener("keydown", onKey);
-    if (!F.reduced) raf = requestAnimationFrame(tick);
     timers.push(setInterval(() => { if (!document.hidden) pick(Object.values(BIG))(); }, rand(45000, 75000)));
-    timers.push(setInterval(() => { if (Date.now() - lastMove > 20000) say(pick(BUDDY_LINES.idle), 3000); }, 9000));
-    setTimeout(() => F.banner("🤫 Psst… try typing meow, party, hire or boom"), 1500);
+    setTimeout(() => F.banner("🤫 Psst… try typing meow, party, hire or boom"), 9000);
     fireworks(2);
+    dispatchEvent(new CustomEvent("superfun:change", { detail: { on: true } }));
   }
   function stop() {
     if (!on) return;
     on = false;
     document.body.classList.remove("superfun");
-    [disco, ball, buddy, hud].forEach((n) => n?.remove());
-    removeEventListener("mousemove", onMove); document.removeEventListener("mouseover", onOver); removeEventListener("keydown", onKey);
-    cancelAnimationFrame(raf); timers.forEach(clearInterval); timers = [];
+    [disco, ball, hud].forEach((n) => n?.remove());
+    removeEventListener("mousemove", onMove); removeEventListener("keydown", onKey);
+    timers.forEach(clearInterval); timers = [];
+    dispatchEvent(new CustomEvent("superfun:change", { detail: { on: false } }));
   }
 
   // Signals from the app (dispatched in index.html).
@@ -223,6 +204,6 @@
     toggle() { on ? stop() : start(); save(KEY, on); return on; },
     stopIfOn() { if (on) { stop(); save(KEY, false); } },
     init() { if (load(KEY, false)) start(); },
-    big: BIG, stats: () => stats,
+    big: BIG, stats: () => stats, unlock, bonus, fireworks,
   };
 })();
