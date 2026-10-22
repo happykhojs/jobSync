@@ -1,0 +1,45 @@
+/* Super Fun story mode: an endless series of little episodes acted out on the grass.
+   Actors, props, weather and narration are all click-through. */
+
+.st-actor, .st-prop { position: absolute; left: 0; bottom: 18px; font-size: 38px; line-height: 1; pointer-events: none; will-change: transform; }
+.st-actor .bod { display: inline-block; transition: transform .2s; }
+.st-actor.flip .bod { transform: scaleX(-1); }
+.st-actor.walking .bod { animation: fun-hop .3s ease-in-out infinite; }
+.st-actor.fallen .bod { transform: rotate(90deg) translateX(10px); }
+.st-actor .fun-bubble { bottom: 105%; font-size: 12px; max-width: 220px; white-space: normal; text-align: center; width: max-content; }
+.st-prop { font-size: 54px; bottom: 16px; }
+.st-fly { position: absolute; left: 0; top: 0; font-size: 28px; pointer-events: none; will-change: transform; }
+
+/* narration: a slim caption floating above the actors (and their speech bubbles), so the stage stays visible */
+.st-caption { position: fixed; left: 50%; bottom: 104px; transform: translateX(-50%); z-index: 6; pointer-events: none;
+  max-width: min(92vw, 760px); background: rgba(26, 26, 27, .78); color: #fff; border-radius: 999px; padding: 3px 14px;
+  font: 600 12px/1.5 "IBM Plex Sans", sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: opacity .3s; }
+.st-caption b { color: #ffd635; font-weight: 700; }
+.st-caption.swap { opacity: 0; }
+
+/* sky moods (behind the app) */
+.st-sky { position: absolute; inset: 0; opacity: 0; transition: opacity 2s ease, background 2s ease; }
+.st-sky.sunny { opacity: 1; background: radial-gradient(circle at 85% 12%, rgba(255, 214, 53, .55), transparent 45%); }
+.st-sky.rain { opacity: 1; background: linear-gradient(180deg, rgba(70, 80, 100, .45), rgba(120, 140, 160, .2)); }
+.st-sky.dusk { opacity: 1; background: linear-gradient(180deg, rgba(255, 120, 80, .35), rgba(120, 60, 160, .25)); }
+.st-sky.night { opacity: 1; background: linear-gradient(180deg, rgba(10, 20, 60, .6), rgba(40, 40, 90, .3)); }
+.st-sky.war { opacity: 1; background: linear-gradient(180deg, rgba(120, 60, 40, .35), rgba(200, 120, 60, .15)); }
+.st-sky.love { opacity: 1; background: radial-gradient(circle at 50% 80%, rgba(255, 102, 172, .35), transparent 60%); }
+
+/* light rain for rainy scenes */
+.st-rain { position: fixed; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
+.st-rain i { position: absolute; top: -30px; width: 2px; height: 18px; background: linear-gradient(transparent, rgba(40, 110, 200, .7));
+  animation: sf-rainfall linear infinite; }
+
+/* tsunami wave sweeping over everything (click-through) */
+.st-wave { position: fixed; top: 0; bottom: 0; left: 0; width: 70vw; z-index: 7; pointer-events: none; will-change: transform;
+  background: linear-gradient(90deg, rgba(12, 84, 170, .0), rgba(30, 120, 220, .7) 25%, rgba(12, 84, 170, .85));
+  display: flex; flex-direction: column; justify-content: space-around; align-items: flex-end; font-size: 90px; line-height: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .st-actor, .st-prop, .st-fly, .st-rain, .st-wave { display: none !important; }
+}
+
+/* Super Fun: event banners sit above the narration caption */
+body.superfun .fun-banner { bottom: 140px; }

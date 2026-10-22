@@ -1,0 +1,61 @@
+/* Super Fun dino mini-game: your dino on the grass, creatures, powers, HUD. All click-through. */
+.gm-player { position: fixed; left: 0; bottom: 18px; z-index: 6; font-size: 42px; line-height: 1; pointer-events: none; will-change: transform;
+  transform-origin: 50% 100%; }
+.gm-player .bod { display: inline-block; transition: transform .15s; }
+.gm-player.right .bod { transform: scaleX(-1); }
+.gm-player.walking .bod { animation: fun-hop .25s ease-in-out infinite; }
+.gm-player.giant { font-size: 92px; }
+.gm-player.hurt .bod { animation: gm-hurt .3s linear 2; }
+.gm-player.dead .bod { transform: rotate(90deg); filter: grayscale(1); }
+.gm-player.sleep .bod { filter: brightness(.9); }
+.gm-shield { position: absolute; inset: -12px; border: 3px solid #4fc3ff; border-radius: 50%; box-shadow: 0 0 14px #4fc3ff, inset 0 0 14px rgba(79, 195, 255, .5);
+  animation: gm-pulse .6s ease-in-out infinite alternate; }
+.gm-zzz { position: absolute; top: -18px; right: -10px; font-size: 16px; animation: gm-zzz 2s ease-in-out infinite; }
+
+/* bars above the dino */
+.gm-bars { position: absolute; bottom: calc(100% + 4px); left: 50%; transform: translateX(-50%); width: 64px; }
+.gm-bars .name { font: 700 10px "IBM Plex Sans", sans-serif; color: #fff; background: #1a1a1b; border-radius: 6px; padding: 1px 5px;
+  white-space: nowrap; display: block; text-align: center; margin-bottom: 2px; }
+.gm-bar { height: 5px; background: rgba(0, 0, 0, .35); border-radius: 99px; overflow: hidden; margin-top: 2px; }
+.gm-bar i { display: block; height: 100%; border-radius: 99px; transition: width .2s; }
+.gm-bar.hp i { background: linear-gradient(90deg, #46d160, #9be15d); }
+.gm-bar.hp.low i { background: linear-gradient(90deg, #ea0027, #ff7a45); }
+.gm-bar.en i { background: linear-gradient(90deg, #0079d3, #4fc3ff); }
+
+/* creatures */
+.gm-mob { position: fixed; left: 0; bottom: 18px; z-index: 5; font-size: 36px; line-height: 1; pointer-events: none; will-change: transform; }
+.gm-mob .bod { display: inline-block; }
+.gm-mob.right .bod { transform: scaleX(-1); }
+.gm-mob.moving .bod { animation: fun-hop .35s ease-in-out infinite; }
+.gm-mob.small { font-size: 26px; }
+.gm-mob.boss { font-size: 80px; }
+.gm-mob.angry::after { content: "💢"; position: absolute; top: -12px; right: -8px; font-size: 16px; }
+.gm-mob.hit .bod { filter: brightness(2) saturate(0); }
+.gm-mob .mhp { position: absolute; bottom: calc(100% + 2px); left: 50%; transform: translateX(-50%); width: 36px; height: 4px;
+  background: rgba(0, 0, 0, .35); border-radius: 99px; overflow: hidden; }
+.gm-mob .mhp i { display: block; height: 100%; background: #ea0027; }
+.gm-meat { position: fixed; left: 0; bottom: 18px; z-index: 5; font-size: 26px; pointer-events: none; }
+
+/* attacks + effects */
+.gm-fire { position: fixed; left: 0; bottom: 28px; z-index: 6; font-size: 26px; pointer-events: none; will-change: transform; }
+.gm-pop { position: fixed; z-index: 41; pointer-events: none; font: 800 14px "IBM Plex Sans", sans-serif; color: #ea0027;
+  text-shadow: 1px 1px 0 #fff; animation: gm-float .9s ease-out forwards; white-space: nowrap; }
+.gm-pop.heal { color: #46a758; }
+.gm-pop.big { font-size: 22px; }
+.gm-quake { position: fixed; left: 0; right: 0; bottom: 0; height: 60px; z-index: 5; pointer-events: none;
+  background: radial-gradient(ellipse at var(--x, 50%) 100%, rgba(120, 72, 30, .6), transparent 60%); animation: gm-fade .7s ease-out forwards; }
+
+/* controls help */
+.gm-help { position: fixed; left: 14px; bottom: 44px; z-index: 6; pointer-events: none; background: rgba(26, 26, 27, .9); color: #fff;
+  border-radius: 12px; padding: 10px 12px; font: 500 12px/1.6 "IBM Plex Sans", sans-serif; box-shadow: 0 6px 18px rgba(0, 0, 0, .25); }
+.gm-help b { color: #ffd635; }
+.gm-help kbd { display: inline-block; min-width: 18px; text-align: center; background: #fff; color: #1a1a1b; border-radius: 4px;
+  padding: 0 4px; font: 700 11px "IBM Plex Sans", sans-serif; margin-right: 4px; }
+
+@keyframes gm-hurt { 0%, 100% { translate: 0 0; } 25% { translate: -4px 0; } 75% { translate: 4px 0; } }
+@keyframes gm-pulse { from { opacity: .6; transform: scale(.95); } to { opacity: 1; transform: scale(1.05); } }
+@keyframes gm-zzz { 0% { opacity: 0; translate: 0 0; } 50% { opacity: 1; } 100% { opacity: 0; translate: 8px -14px; } }
+@keyframes gm-float { from { transform: translate(-50%, 0); opacity: 1; } to { transform: translate(-50%, -40px); opacity: 0; } }
+@keyframes gm-fade { from { opacity: 1; } to { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) { .gm-player, .gm-mob, .gm-fire, .gm-meat, .gm-help { display: none !important; } }

@@ -1,8 +1,18 @@
+# secrets and local state
 .env
-.venv/
-posted_jobs.json
-curated_jobs.json
 .session.json
 edits.json
 skipped.json
+posted_jobs.json
+curated_jobs.json
+
+# scraped data (regenerated)
+jobs.json
+jobs_global_backup.json
+seen_jobs.json
+
+# python / os
+.venv/
 __pycache__/
+*.pyc
+.DS_Store
