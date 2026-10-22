@@ -4,10 +4,15 @@ Find the latest jobs in India from 100+ company career sites, review and edit th
 
 ## Features
 
-- **Search** company career sites (Greenhouse, Lever, Ashby, SmartRecruiters, Workday) by keywords, location, experience (internship, fresher, 1–3 yrs…), sector, company type and posting date. Companies with more India openings come first.
+- **Search** company career sites (Greenhouse, Lever, Ashby, SmartRecruiters, Workday) and the Himalayas remote-jobs platform by keywords (with suggestions for roles, skills and companies as you type), location, experience (internship, fresher, 1–3 yrs…), sector, company type, source and posting date. Exclude title words, match keywords in the title only, or show only jobs with a salary. Newest jobs come first (or sort by biggest employers).
+- **Himalayas jobs** keep their Himalayas `applicationLink` as the listing URL, unchanged, as their API terms require.
 - **Review & edit** every field before posting: title, rich-text description and requirements, experience, salary, locations, skills, benefits, tags.
 - **AI on demand**: the ✨ Improve buttons rewrite jobs in the WorkOwon style with Gemini. AI is never used unless you click one; results are cached so a job is never paid for twice.
 - **Post** selected jobs to the WorkOwon admin API (login with email/password, tokens refresh automatically).
+- **🎉 Fun Zone** (optional toggle): animals strolling, surprise weather and events, memes while searching, confetti when a job is posted. Everything is click-through and stays out of the way of posting.
+- **🚀 Super Fun** (on top of Fun Zone): anything can happen. Buttons sometimes blast, turn into birds or vanish (they come back and still do their job), giant animals take over the screen, a train crosses the middle, hunts and cavemen run along the bottom, floods rise over the jobs, synth sounds (🔊 toggle), recruiter XP, combos, achievements and secret words (`meow`, `party`, `hire`, `boom`, the Konami code).
+- **📖 Story mode** (in Super Fun): an endless show of little episodes (war, love, an election, a tsunami, sunny and rainy days, a job interview, aliens, a heist, a dragon) acted out on the grass with narration, weather and sound.
+- **🦖 Dino mini-game** (in Super Fun): you're the dino at the bottom. ← → move, ↑ jump, F fire, A bite/eat, D dash, S shield, G giant, Q earthquake, C change avatar, ? controls. Eat small animals to stay strong; when you're weak, predators hunt you. Your dino naps after a minute without input, so it never interrupts real work.
 
 ## Setup
 
@@ -39,6 +44,11 @@ Open http://127.0.0.1:5050, log in with your WorkOwon admin account, search, rev
 |---|---|
 | `app.py` | Dashboard server (Flask) |
 | `static/index.html` | Dashboard UI |
+| `static/fun.js`, `static/fun.css` | Fun Zone |
+| `static/superfun.js`, `static/superfun.css` | Super Fun: XP, levels, achievements, secret words |
+| `static/chaos.js`, `static/chaos.css` | Super Fun chaos: pranks, takeovers, train, hunts, flood, sounds |
+| `static/story.js`, `static/story.css` | Super Fun story mode |
+| `static/game.js`, `static/game.css` | Super Fun dino mini-game |
 | `search.py` | Search across the company catalog |
 | `job_scraper.py` | Career-site scrapers |
 | `enrich.py` | Rule-based extraction (experience, skills, benefits, locations) |

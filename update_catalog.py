@@ -36,6 +36,9 @@ def india_openings(board: dict) -> int:
     if provider == "ashby":
         jobs = js.get_json(f"https://api.ashbyhq.com/posting-api/job-board/{slug}").get("jobs", [])
         return sum(1 for j in jobs if is_india(" ".join([j.get("location") or ""] + [x.get("location", "") for x in j.get("secondaryLocations") or []])))
+    if provider == "himalayas":
+        data = js.get_json("https://himalayas.app/jobs/api/search", {"sort": "recent", "country": "India", "page": 1})
+        return int(data.get("totalCount") or 0)
     return 0
 
 
@@ -57,7 +60,7 @@ def main() -> None:
     boards.sort(key=lambda b: b.get("indiaOpenings") or 0, reverse=True)
     BOARDS_FILE.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
     for b in boards:
-        print(f"{b.get('indiaOpenings', '?'):>6}  {b['companyName']}  ({b['sector']})")
+        print(f"{b.get('indiaOpenings', '?'):>6}  {b['companyName']}  ({b.get('sector') or b.get('companyType', '')})")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,84 @@
+/* Fun Zone: playful background + characters. Everything lives in .fun-layer behind the app
+   and ignores the mouse, so it can never block posting jobs. */
+body.fun { background: linear-gradient(180deg, #bde0ff 0%, #e0f0ff 45%, #fff4e0 100%) fixed; }
+body.fun header, body.fun main, body.fun footer { position: relative; z-index: 2; }
+body.fun header { background: rgba(255, 255, 255, .92); backdrop-filter: blur(6px); }
+body.fun .panel, body.fun .card, body.fun .empty { box-shadow: 0 6px 20px rgba(0, 60, 120, .10); }
+body.fun footer { color: #345; }
+
+/* back layer: sky scenery behind the app; front layer: animals/weather over the cards but below panels & dialogs */
+.fun-layer, .fun-front { position: fixed; inset: 0; pointer-events: none; overflow: hidden; display: none; }
+.fun-layer { z-index: 1; }
+.fun-front { z-index: 5; }
+body.fun .fun-layer, body.fun .fun-front { display: block; }
+.fun-layer *, .fun-front * { pointer-events: none; user-select: none; }
+body.fun main { padding-bottom: 60px; }
+
+.fun-btn { border-color: #ff4500 !important; color: #ff4500 !important; }
+body.fun .fun-btn { background: linear-gradient(90deg, #ff4500, #ff8717) !important; color: #fff !important; border-color: transparent !important; }
+
+/* sky: sun, clouds, stickers */
+.fun-sun { position: absolute; top: 70px; right: 6vw; font-size: 64px; animation: fun-spin 40s linear infinite; opacity: .9; }
+.fun-cloud { position: absolute; left: -200px; font-size: 80px; opacity: .85; animation: fun-drift linear infinite; }
+.fun-sticker { position: absolute; font-size: 28px; opacity: .35; animation: fun-bob 6s ease-in-out infinite; }
+
+/* ground: grass strip + swaying flowers */
+.fun-ground { position: absolute; left: 0; right: 0; bottom: 0; height: 30px; opacity: .95;
+  background: linear-gradient(180deg, #8fd16a, #5fae3e); border-top: 3px solid #4f9a32; }
+.fun-flower { position: absolute; bottom: 16px; font-size: 26px; transform-origin: 50% 100%; animation: fun-sway 3s ease-in-out infinite; }
+
+/* walkers */
+.fun-walker { position: absolute; bottom: 18px; font-size: 34px; will-change: transform; }
+.fun-walker .bod { display: inline-block; animation: fun-hop .5s ease-in-out infinite; }
+.fun-walker.flip .bod { transform: scaleX(-1); }
+.fun-bubble { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); white-space: nowrap;
+  background: #fff; color: #1a1a1b; font: 600 12px/1.3 "IBM Plex Sans", sans-serif; padding: 4px 9px; border-radius: 12px;
+  border: 2px solid #1a1a1b; animation: fun-pop .25s ease-out; }
+
+/* events */
+.fun-drop { position: absolute; top: -20px; width: 2px; height: 16px; background: linear-gradient(transparent, #4a90d9);
+  animation: fun-fall linear forwards; opacity: .7; }
+.fun-flake { position: absolute; top: -30px; font-size: 18px; animation: fun-fall linear forwards; opacity: .9; }
+.fun-rise { position: absolute; bottom: -60px; font-size: 40px; animation: fun-rise linear forwards; }
+.fun-fly { position: absolute; font-size: 40px; will-change: transform; }
+.fun-beam { position: absolute; top: 100%; left: 50%; width: 60px; height: 160px; transform: translateX(-50%);
+  background: linear-gradient(rgba(255, 255, 140, .7), transparent); clip-path: polygon(35% 0, 65% 0, 100% 100%, 0 100%); }
+.fun-star { position: absolute; width: 120px; height: 2px; background: linear-gradient(90deg, transparent, #fff, #ffe066);
+  box-shadow: 0 0 8px #ffe066; animation: fun-shoot 1.4s ease-out forwards; }
+.fun-rainbow { position: absolute; left: 50%; bottom: 0; width: 900px; height: 450px; transform: translateX(-50%);
+  border-radius: 900px 900px 0 0; opacity: 0; animation: fun-fade 9s ease-in-out forwards;
+  background: radial-gradient(circle at 50% 100%, transparent 55%, #8b5cf6 55%, #8b5cf6 60%, #3b82f6 60%, #3b82f6 65%,
+    #22c55e 65%, #22c55e 70%, #facc15 70%, #facc15 75%, #f97316 75%, #f97316 80%, #ef4444 80%, #ef4444 85%, transparent 85%); }
+.fun-banner { position: absolute; bottom: 72px; left: 50%; transform: translateX(-50%); background: #1a1a1b; color: #fff;
+  font: 700 14px "IBM Plex Sans", sans-serif; padding: 8px 16px; border-radius: 999px; animation: fun-banner 4s ease-in-out forwards; z-index: 3; }
+
+/* celebrations (above content, still click-through) */
+.fun-confetti { position: fixed; width: 9px; height: 14px; z-index: 40; pointer-events: none; border-radius: 2px;
+  animation: fun-burst 1.6s cubic-bezier(.2, .7, .3, 1) forwards; }
+.fun-spark { position: fixed; z-index: 40; pointer-events: none; font-size: 22px; animation: fun-burst 1s ease-out forwards; }
+
+/* meme loader */
+.meme-card { background: #fff; border-radius: 12px; padding: 18px; text-align: center; border: 1px solid var(--border, #edeff1); }
+.meme-card img { max-width: 100%; max-height: 420px; border-radius: 8px; display: block; margin: 10px auto; }
+.meme-card .meme-title { font-weight: 700; font-size: 15px; margin: 4px 0 0; }
+.meme-card .meme-sub { color: #787c7e; font-size: 12px; }
+.meme-card .meme-status { color: #ff4500; font-weight: 700; font-size: 13px; display: flex; gap: 8px; justify-content: center; align-items: center; }
+.meme-card .meme-actions { margin-top: 10px; display: flex; gap: 8px; justify-content: center; }
+
+@keyframes fun-spin { to { transform: rotate(360deg); } }
+@keyframes fun-drift { from { transform: translateX(0); } to { transform: translateX(calc(100vw + 400px)); } }
+@keyframes fun-bob { 0%, 100% { transform: translateY(0) rotate(-6deg); } 50% { transform: translateY(-10px) rotate(6deg); } }
+@keyframes fun-sway { 0%, 100% { transform: rotate(-10deg); } 50% { transform: rotate(10deg); } }
+@keyframes fun-hop { 0%, 100% { translate: 0 0; } 50% { translate: 0 -5px; } }
+@keyframes fun-pop { from { transform: translateX(-50%) scale(.3); opacity: 0; } to { transform: translateX(-50%) scale(1); opacity: 1; } }
+@keyframes fun-fall { to { transform: translate(var(--dx, 0px), 110vh); } }
+@keyframes fun-rise { to { transform: translate(var(--dx, 0px), -120vh) rotate(var(--rot, 0deg)); } }
+@keyframes fun-shoot { from { transform: translate(0, 0) rotate(20deg); opacity: 1; } to { transform: translate(-500px, 200px) rotate(20deg); opacity: 0; } }
+@keyframes fun-fade { 0% { opacity: 0; } 20%, 70% { opacity: .45; } 100% { opacity: 0; } }
+@keyframes fun-banner { 0% { opacity: 0; transform: translate(-50%, 20px); } 10%, 85% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 20px); } }
+@keyframes fun-burst { from { transform: translate(0, 0) rotate(0); opacity: 1; } to { transform: translate(var(--dx), var(--dy)) rotate(var(--rot)); opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .fun-layer *, .fun-front *, .fun-confetti, .fun-spark { animation: none !important; }
+  .fun-walker, .fun-fly, .fun-drop, .fun-flake, .fun-rise, .fun-cloud { display: none; }
+}

@@ -433,7 +433,8 @@ def _workday_posted(text: str) -> str | None:
         if not m:
             return None
         days = int(m.group(1)) + (1 if "+" in t else 0)
-    return (now - timedelta(days=days)).isoformat()
+    # Workday only gives the day; use its middle so "Today" doesn't outrank jobs with exact times.
+    return (now - timedelta(days=days, hours=12)).isoformat()
 
 
 def scrape_workday(
@@ -481,12 +482,66 @@ def scrape_workday(
     return records
 
 
+HIMALAYAS_PAGE = 20
+HIMALAYAS_MAX_PAGES = 10
+# Himalayas seniority -> enrich.SOURCE_LEVELS ids
+HIMALAYAS_LEVELS = {"entry-level": "entry_level", "director": "director", "executive": "executive"}
+
+
+def scrape_himalayas(
+    board: str, keep: Keep | None = None, limit: int = MAX_JOBS_PER_BOARD,
+    query: str | None = None, country: str | None = None, count_only: bool = False, **_: Any,
+) -> list:
+    # Himalayas is a remote-jobs platform, not one company: each job carries its own employer.
+    # API terms: the Apply link must be the applicationLink, unchanged.
+    params: dict[str, Any] = {"sort": "recent"}
+    if country == "in":
+        params["country"] = "India"  # remote jobs open to candidates in India (incl. worldwide)
+    if query:
+        params["q"] = query
+    location = "India (Remote)" if country == "in" else "Remote"
+    matches = []
+    for page in range(1, HIMALAYAS_MAX_PAGES + 1):
+        jobs = get_json("https://himalayas.app/jobs/api/search", params={**params, "page": page}).get("jobs") or []
+        for job in jobs:
+            posted = job.get("pubDate") and datetime.fromtimestamp(job["pubDate"], tz=timezone.utc).isoformat()
+            if _keep(keep, job.get("title"), [location], posted, [*(job.get("categories") or []), job.get("companyName")]):
+                matches.append((job, posted))
+        # Results are newest first; stop once we have enough candidates.
+        if len(jobs) < HIMALAYAS_PAGE or len(matches) >= (limit if count_only else limit * 2):
+            break
+    if count_only:
+        return [m[1] for m in matches]
+    records = []
+    for job, posted in _newest(matches, lambda m: m[1], limit):
+        seniority = str((job.get("seniority") or [""])[0]).lower()
+        record = make_record(
+            "himalayas", board, job.get("guid") or job.get("applicationLink"), job.get("title"),
+            job.get("companyName"), job.get("applicationLink"), job.get("description") or job.get("excerpt"),
+            location, posted, job.get("employmentType"), "remote",
+            logo_url=job.get("companyLogo"), raw={k: v for k, v in job.items() if k != "description"},
+            source_level=HIMALAYAS_LEVELS.get(seniority),
+            tags=[c.replace("-", " ") for c in (job.get("categories") or [])[:3]],
+        )
+        if record:
+            if job.get("minSalary") and job.get("maxSalary"):
+                record.update(
+                    salaryMin=job["minSalary"], salaryMax=job["maxSalary"],
+                    salaryCurrency=job.get("currency") or "",
+                    salaryPeriod="MONTHLY" if "month" in str(job.get("salaryPeriod")) else "HOURLY" if "hour" in str(job.get("salaryPeriod")) else "YEARLY",
+                    salaryVisible=True,
+                )
+            records.append(record)
+    return records
+
+
 SCRAPERS = {
     "greenhouse": scrape_greenhouse,
     "lever": scrape_lever,
     "ashby": scrape_ashby,
     "smartrecruiters": scrape_smartrecruiters,
     "workday": scrape_workday,
+    "himalayas": scrape_himalayas,
 }
 
 
@@ -543,7 +598,10 @@ def main() -> None:
             website = str(item.get("website", "")).strip()
             for job in jobs:
                 # ATS board slugs are not necessarily legal/company display names.
-                # Use a configured display name when supplied.
+                # Use a configured display name when supplied (job platforms keep each job's own employer).
+                if item.get("platform"):
+                    by_key[job["sourceKey"]] = job
+                    continue
                 if configured_company:
                     job["externalCompanyName"] = configured_company
                 if website:
