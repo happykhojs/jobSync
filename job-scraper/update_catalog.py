@@ -36,6 +36,11 @@ def india_openings(board: dict) -> int:
     if provider == "ashby":
         jobs = js.get_json(f"https://api.ashbyhq.com/posting-api/job-board/{slug}").get("jobs", [])
         return sum(1 for j in jobs if is_india(" ".join([j.get("location") or ""] + [x.get("location", "") for x in j.get("secondaryLocations") or []])))
+    if provider == "oracle":
+        location = js.oracle_country_location(slug, "in")
+        return location[1] if location else 0
+    if provider == "amazon":
+        return int(js.get_json("https://www.amazon.jobs/en/search.json", {"normalized_country_code[]": "IND", "result_limit": 1}).get("hits") or 0)
     if provider == "himalayas":
         data = js.get_json("https://himalayas.app/jobs/api/search", {"sort": "recent", "country": "India", "page": 1})
         return int(data.get("totalCount") or 0)

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import base64
 import json
+import re
 import threading
 import time
 from pathlib import Path
@@ -25,6 +26,28 @@ class AuthError(Exception):
     pass
 
 
+def _norm(value: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).strip()
+
+
+def job_keys(company: Any, title: Any, city: Any, url: Any) -> set[str]:
+    """Keys that identify the same job across sources and WorkOwon: its listing URL, and company + title + city
+    (the same role reposted under another requisition or found on two sites counts as a duplicate)."""
+    keys = set()
+    link = re.sub(r"^https?://(www\.)?|#.*$|/+$", "", str(url or "").strip().lower())
+    if link:
+        keys.add("url:" + link)
+    if _norm(company) and _norm(title):
+        keys.add(f"job:{_norm(company)}|{_norm(title)}|{_norm(city)}")
+    return keys
+
+
+def record_keys(rec: dict) -> set[str]:
+    """job_keys for a scraped record or a posting payload (both use the externalX field names)."""
+    first = (rec.get("locations") or [{}])[0]
+    return job_keys(rec.get("externalCompanyName"), rec.get("title"), first.get("city"), rec.get("externalListingUrl"))
+
+
 def _find_key(data: Any, names: tuple[str, ...]) -> str | None:
     """Find the first string value under any of `names`, searching nested dicts (response shapes vary)."""
     if isinstance(data, dict):
@@ -36,6 +59,23 @@ def _find_key(data: Any, names: tuple[str, ...]) -> str | None:
             if found:
                 return found
     return None
+
+
+def external_job_keys(get: Any) -> set[str]:
+    """job_keys of every external job already on WorkOwon; get(path, params) makes an authorized GET."""
+    keys: set[str] = set()
+    page = 0
+    while True:
+        response = get("/api/jobs/admin/external-jobs", {"page": page, "pageSize": 100})
+        if not response.ok:
+            raise AuthError(_error_message(response))
+        data = response.json().get("data") or {}
+        for job in data.get("content") or []:
+            city = ((job.get("locations") or [{}])[0]).get("city")
+            keys |= job_keys(job.get("companyName"), job.get("title"), city, job.get("externalListingUrl"))
+        page += 1
+        if data.get("last", True) or page >= (data.get("totalPages") or 0):
+            return keys
 
 
 def _jwt_exp(token: str) -> float:
@@ -131,6 +171,9 @@ class WorkowonClient:
         if not response.ok:
             raise AuthError(_error_message(response))
         return response.json().get("data") or {}
+
+    def external_job_keys(self) -> set[str]:
+        return external_job_keys(lambda path, params: self.request("GET", path, params=params))
 
     def post_external_job(self, payload: dict) -> tuple[bool, str, dict]:
         """Returns (ok, message, response_json)."""

@@ -15,6 +15,7 @@ from typing import Any
 import job_scraper
 from enrich import logo_from_website
 from post_jobs import EMPLOYMENT_TYPES, WORKPLACE_TYPES, interleave_companies, normalize
+from workowon import record_keys
 
 INDIA = (
     r"india|bengaluru|bangalore|mumbai|pune|hyderabad|chennai|delhi|gurgaon|gurugram|noida|"
@@ -191,7 +192,9 @@ def _keyword_regex(keywords: str) -> re.Pattern | None:
     return re.compile("|".join(rf"(?<!\w){re.escape(t)}(?!\w)" for t in terms), re.I)
 
 
-def search(criteria: dict, catalog: list[dict], exclude: set[str]) -> dict:
+def search(criteria: dict, catalog: list[dict], exclude: set[str], seen: set[str] | None = None) -> dict:
+    """exclude: sourceKeys already posted/skipped here; seen: workowon.job_keys of jobs already on WorkOwon."""
+    seen = seen or set()
     count = max(1, min(int(criteria.get("count") or 10), 50))
     sectors = set(criteria.get("sectors") or [])
     types = set(criteria.get("companyTypes") or [])
@@ -243,9 +246,9 @@ def search(criteria: dict, catalog: list[dict], exclude: set[str]) -> dict:
     bands = set(criteria.get("experience") or []) & set(EXPERIENCE_BANDS)
     employment = set(criteria.get("employmentTypes") or [])
     workplace = set(criteria.get("workplaceTypes") or [])
-    # Already posted/skipped jobs are only known after records are built, so leave a little headroom.
+    # Already posted/skipped and duplicate jobs are only known after records are built, so leave some headroom.
     # Experience bands are only known after details load (years live in the description), so fetch more spares.
-    target = count * 3 if (bands - {"Internship"}) or salary_only else count * 2 if (levels or employment or workplace) else count + max(2, count // 3)
+    target = count * 3 if (bands - {"Internship"}) or salary_only else count * 2 if (levels or employment or workplace) else count + max(3, count // 2)
     terms = [t.strip() for t in re.split(r"[,;]", criteria.get("keywords", "")) if t.strip()]
     query = terms[0] if len(terms) == 1 else None
 
@@ -333,10 +336,15 @@ def search(criteria: dict, catalog: list[dict], exclude: set[str]) -> dict:
             return False
         if salary_only and not rec.get("salaryVisible"):
             return False
-        return rec["sourceKey"] not in exclude
+        return rec["sourceKey"] not in exclude and not (record_keys(rec) & seen)
 
-    matched = [r for r in found if passes(r)]
-    matched.sort(key=lambda r: r.get("sourceUpdatedAt") or "", reverse=True)
+    matched, shown = [], set()
+    for rec in sorted(found, key=lambda r: r.get("sourceUpdatedAt") or "", reverse=True):
+        # The same job can be listed on two sites or reposted under a new requisition: keep the newest copy.
+        keys = record_keys(rec)
+        if passes(rec) and not keys & shown:
+            shown |= keys
+            matched.append(rec)
     if newest:
         results = matched[:count]
     else:

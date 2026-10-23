@@ -1,10 +1,11 @@
 # WorkOwon JobSync
 
-Find the latest jobs in India from 100+ company career sites, review and edit them, optionally polish them with AI, and post them to WorkOwon.
+Find the latest jobs in India (12,000+ posted in the last 30 days) from 180 company career sites and job platforms, review and edit them, optionally polish them with AI, and post them to WorkOwon.
 
 ## Features
 
-- **Search** company career sites (Greenhouse, Lever, Ashby, SmartRecruiters, Workday) and the Himalayas remote-jobs platform by keywords (with suggestions for roles, skills and companies as you type), location, experience (internship, fresher, 1–3 yrs…), sector, company type, source and posting date. Exclude title words, match keywords in the title only, or show only jobs with a salary. Newest jobs come first (or sort by biggest employers).
+- **Search** company career sites (Greenhouse, Lever, Ashby, SmartRecruiters, Workday, Oracle Recruiting, Amazon Jobs) and the Himalayas remote-jobs platform by keywords (with suggestions for roles, skills and companies as you type), location, experience (internship, fresher, 1–3 yrs…), sector, company type, source and posting date. Exclude title words, match keywords in the title only, or show only jobs with a salary. Newest jobs come first (or sort by biggest employers).
+- **No duplicates**: jobs already on WorkOwon (checked against its external-jobs list after you log in) are hidden and can't be posted again, and the same job found on two sites or reposted under a new requisition (same company, title and city) is shown once.
 - **Himalayas jobs** keep their Himalayas `applicationLink` as the listing URL, unchanged, as their API terms require.
 - **Review & edit** every field before posting: title, rich-text description and requirements, experience, salary, locations, skills, benefits, tags.
 - **AI on demand**: the ✨ Improve buttons rewrite jobs in the WorkOwon style with Gemini. AI is never used unless you click one; results are cached so a job is never paid for twice.

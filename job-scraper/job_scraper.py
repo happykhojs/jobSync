@@ -2,7 +2,8 @@
 """
 Khojs public job-board collector (collection-only; does NOT call your API).
 
-Supports public Greenhouse, Lever, Ashby, SmartRecruiters and Workday job boards.
+Supports public Greenhouse, Lever, Ashby, SmartRecruiters, Workday and Oracle Recruiting job boards,
+plus the Himalayas and Amazon Jobs listings.
 Configure board identifiers in boards.json, run this script, and review jobs.json.
 Structured fields (requirements, experience, skills, benefits, salary, locations)
 are extracted from the listing text by enrich.py.
@@ -55,6 +56,18 @@ session.headers.update({"User-Agent": USER_AGENT, "Accept": "application/json"})
 
 
 _CACHE: dict[str, tuple[float, Any]] = {}
+RATE_LIMIT_WAIT_SECONDS = 10
+
+
+def _send(method: str, url: str, **kwargs: Any) -> requests.Response:
+    # Rate limited (HTTP 429): wait as asked (up to a few seconds) and try once more.
+    response = session.request(method, url, timeout=TIMEOUT, **kwargs)
+    if response.status_code == 429:
+        retry_after = response.headers.get("Retry-After", "")
+        time.sleep(min(int(retry_after) if retry_after.isdigit() else 3, RATE_LIMIT_WAIT_SECONDS))
+        response = session.request(method, url, timeout=TIMEOUT, **kwargs)
+    response.raise_for_status()
+    return response
 
 
 def get_json(url: str, params: dict | None = None) -> Any:
@@ -63,9 +76,7 @@ def get_json(url: str, params: dict | None = None) -> Any:
     hit = _CACHE.get(key)
     if hit and time.time() - hit[0] < CACHE_SECONDS:
         return hit[1]
-    response = session.get(url, params=params, timeout=TIMEOUT)
-    response.raise_for_status()
-    data = response.json()
+    data = _send("GET", url, params=params).json()
     _CACHE[key] = (time.time(), data)
     return data
 
@@ -363,7 +374,8 @@ def scrape_smartrecruiters(
 
 
 WORKDAY_PAGE = 20
-WORKDAY_MAX_PAGES = 10
+# Listings are newest first and searches stop early, so this only bounds the deepest scan.
+WORKDAY_MAX_PAGES = 50
 
 
 def post_json(url: str, body: dict) -> Any:
@@ -371,9 +383,7 @@ def post_json(url: str, body: dict) -> Any:
     hit = _CACHE.get(key)
     if hit and time.time() - hit[0] < CACHE_SECONDS:
         return hit[1]
-    response = session.post(url, json=body, timeout=TIMEOUT, headers={"Content-Type": "application/json"})
-    response.raise_for_status()
-    data = response.json()
+    data = _send("POST", url, json=body, headers={"Content-Type": "application/json"}).json()
     _CACHE[key] = (time.time(), data)
     return data
 
@@ -446,12 +456,15 @@ def scrape_workday(
     if country == "in" and not facet:
         return []  # no India openings on this site
     applied = {facet[0]: facet[1]} if facet else {}
-    matches = []
+    matches, seen, total = [], set(), 0
     for page in range(WORKDAY_MAX_PAGES):
         data = post_json(f"{api}/jobs", {
             "appliedFacets": applied, "limit": WORKDAY_PAGE, "offset": page * WORKDAY_PAGE, "searchText": query or "",
         })
-        postings = data.get("jobPostings") or []
+        # Workday only reports the total on the first page, and keeps answering with old postings past the end.
+        total = total or int(data.get("total") or 0)
+        postings = [p for p in data.get("jobPostings") or [] if p.get("externalPath") not in seen]
+        seen.update(p.get("externalPath") for p in postings)
         for p in postings:
             posted = _workday_posted(p.get("postedOn"))
             loc = p.get("locationsText") or ""
@@ -460,7 +473,7 @@ def scrape_workday(
             if _keep(keep, p.get("title"), locs, posted, p.get("bulletFields") or []):
                 matches.append((p, posted))
         # Listings come newest first; stop once we have enough candidates.
-        if len(postings) < WORKDAY_PAGE or len(matches) >= (limit if count_only else limit * 2):
+        if len(postings) < WORKDAY_PAGE or (page + 1) * WORKDAY_PAGE >= total or len(matches) >= (limit if count_only else limit * 2):
             break
     if count_only:
         return [m[1] for m in matches]
@@ -483,7 +496,7 @@ def scrape_workday(
 
 
 HIMALAYAS_PAGE = 20
-HIMALAYAS_MAX_PAGES = 10
+HIMALAYAS_MAX_PAGES = 250
 # Himalayas seniority -> enrich.SOURCE_LEVELS ids
 HIMALAYAS_LEVELS = {"entry-level": "entry_level", "director": "director", "executive": "executive"}
 
@@ -500,15 +513,22 @@ def scrape_himalayas(
     if query:
         params["q"] = query
     location = "India (Remote)" if country == "in" else "Remote"
-    matches = []
+    matches, seen = [], set()
     for page in range(1, HIMALAYAS_MAX_PAGES + 1):
-        jobs = get_json("https://himalayas.app/jobs/api/search", params={**params, "page": page}).get("jobs") or []
-        for job in jobs:
+        try:
+            jobs = get_json("https://himalayas.app/jobs/api/search", params={**params, "page": page}).get("jobs") or []
+        except requests.HTTPError:
+            if page == 1:
+                raise
+            break  # rate limited deep in the list: keep the newer jobs already found
+        fresh = [j for j in jobs if (j.get("guid") or j.get("applicationLink")) not in seen]
+        seen.update(j.get("guid") or j.get("applicationLink") for j in fresh)
+        for job in fresh:
             posted = job.get("pubDate") and datetime.fromtimestamp(job["pubDate"], tz=timezone.utc).isoformat()
             if _keep(keep, job.get("title"), [location], posted, [*(job.get("categories") or []), job.get("companyName")]):
                 matches.append((job, posted))
         # Results are newest first; stop once we have enough candidates.
-        if len(jobs) < HIMALAYAS_PAGE or len(matches) >= (limit if count_only else limit * 2):
+        if len(jobs) < HIMALAYAS_PAGE or not fresh or len(matches) >= (limit if count_only else limit * 2):
             break
     if count_only:
         return [m[1] for m in matches]
@@ -535,6 +555,143 @@ def scrape_himalayas(
     return records
 
 
+ORACLE_PAGE = 25
+ORACLE_MAX_PAGES = 40
+ORACLE_COUNTRY_NAMES = {"in": "India"}
+
+
+def _oracle_base(board: str) -> tuple[str, str]:
+    # board is "host/siteNumber", e.g. "jpmc.fa.oraclecloud.com/CX_1001"
+    host, site = board.split("/")
+    return f"https://{host}/hcmRestApi/resources/latest", site
+
+
+def _oracle_search(board: str, extra: str) -> dict:
+    api, site = _oracle_base(board)
+    data = get_json(f"{api}/recruitingCEJobRequisitions", params={
+        "onlyData": "true", "expand": "requisitionList.secondaryLocations",
+        "finder": f"findReqs;siteNumber={site},{extra}sortBy=POSTING_DATES_DESC",
+    })
+    return (data.get("items") or [{}])[0]
+
+
+def oracle_country_location(board: str, country: str) -> tuple[int, int] | None:
+    """(locationId, job count) of the country in the site's location facet, if it has openings there."""
+    name = ORACLE_COUNTRY_NAMES.get(country, country)
+    for loc in _oracle_search(board, "facetsList=LOCATIONS,limit=1,").get("locationsFacet") or []:
+        if str(loc.get("Name", "")).lower() == name.lower():
+            return int(loc["Id"]), int(loc.get("TotalCount") or 0)
+    return None
+
+
+def scrape_oracle(
+    board: str, keep: Keep | None = None, limit: int = MAX_JOBS_PER_BOARD,
+    query: str | None = None, country: str | None = None, count_only: bool = False, **_: Any,
+) -> list:
+    # Oracle Recruiting Cloud (Candidate Experience) sites, e.g. JPMorgan Chase.
+    api, site = _oracle_base(board)
+    filters = ""
+    if country:
+        location = oracle_country_location(board, country)
+        if not location:
+            return []  # no openings in that country
+        filters += f"locationId={location[0]},"
+    if query:
+        filters += f'keyword="{query.replace(chr(34), "")}",'
+    matches = []
+    for page in range(ORACLE_MAX_PAGES):
+        result = _oracle_search(board, f"{filters}limit={ORACLE_PAGE},offset={page * ORACLE_PAGE},")
+        postings = result.get("requisitionList") or []
+        total = int(result.get("TotalJobsCount") or 0)
+        for p in postings:
+            secondary = [x.get("Name") for x in p.get("secondaryLocations") or [] if x.get("Name")]
+            if _keep(keep, p.get("Title"), [p.get("PrimaryLocation"), *secondary], p.get("PostedDate"),
+                     [p.get("JobFamily"), p.get("JobFunction")]):
+                matches.append((p, secondary))
+        # Listings come newest first; stop once we have enough candidates.
+        if len(postings) < ORACLE_PAGE or (page + 1) * ORACLE_PAGE >= total or len(matches) >= (limit if count_only else limit * 2):
+            break
+    if count_only:
+        return [to_iso(m[0].get("PostedDate")) for m in matches]
+    records = []
+    for p, secondary in _newest(matches, lambda m: m[0].get("PostedDate"), limit):
+        details = get_json(f"{api}/recruitingCEJobRequisitionDetails", params={
+            "expand": "all", "onlyData": "true", "finder": f'ById;Id="{p["Id"]}",siteNumber={site}',
+        })
+        job = (details.get("items") or [{}])[0]
+        workplace = str(p.get("WorkplaceType") or job.get("WorkplaceType") or "").lower()
+        record = make_record(
+            "oracle", board, p.get("Id"), p.get("Title"), board.split(".")[0],
+            f"https://{board.split('/')[0]}/hcmUI/CandidateExperience/en/sites/{site}/job/{p['Id']}",
+            "\n".join(x for x in [job.get("ExternalDescriptionStr"), job.get("ExternalResponsibilitiesStr")] if x)
+            or p.get("ShortDescriptionStr"),
+            p.get("PrimaryLocation"), job.get("ExternalPostedStartDate") or p.get("PostedDate"),
+            job.get("JobSchedule"), "remote" if "remote" in workplace else "hybrid" if "hybrid" in workplace else None,
+            raw={k: v for k, v in p.items() if k != "ShortDescriptionStr"},
+            requirements=job.get("ExternalQualificationsStr") or "",
+            extra_locations=secondary, country_code=p.get("PrimaryLocationCountry"),
+            tags=[p.get("JobFamily"), p.get("JobFunction")],
+        )
+        if record:
+            if job.get("ExternalPostedEndDate"):
+                record["expiresAt"] = to_iso(job["ExternalPostedEndDate"])
+            records.append(record)
+    return records
+
+
+AMAZON_PAGE = 100
+AMAZON_MAX_PAGES = 30
+# amazon.jobs country filter uses ISO alpha-3 codes.
+AMAZON_COUNTRIES = {"in": "IND"}
+
+
+def scrape_amazon(
+    board: str, keep: Keep | None = None, limit: int = MAX_JOBS_PER_BOARD,
+    query: str | None = None, country: str | None = None, count_only: bool = False, **_: Any,
+) -> list:
+    # amazon.jobs search feed: the listing already carries description and qualifications, so no detail requests.
+    params: dict[str, Any] = {"result_limit": AMAZON_PAGE, "sort": "recent"}
+    if country:
+        params["normalized_country_code[]"] = AMAZON_COUNTRIES.get(country, country.upper())
+    if query:
+        params["base_query"] = query
+    matches = []
+    for page in range(AMAZON_MAX_PAGES):
+        data = get_json("https://www.amazon.jobs/en/search.json", params={**params, "offset": page * AMAZON_PAGE})
+        jobs = data.get("jobs") or []
+        for job in jobs:
+            try:
+                posted = datetime.strptime(job.get("posted_date") or "", "%B %d, %Y").replace(tzinfo=timezone.utc).isoformat()
+            except ValueError:
+                posted = None
+            if _keep(keep, job.get("title"), [job.get("normalized_location"), job.get("location")], posted,
+                     [job.get("job_category"), job.get("job_family")]):
+                matches.append((job, posted))
+        if len(jobs) < AMAZON_PAGE or (page + 1) * AMAZON_PAGE >= int(data.get("hits") or 0):
+            break
+    if count_only:
+        return [m[1] for m in matches]
+    records = []
+    for job, posted in _newest(matches, lambda m: m[1], limit):
+        qualifications = "".join(
+            f"<h3>{heading}</h3><p>{job[key]}</p>"
+            for heading, key in (("Basic qualifications", "basic_qualifications"), ("Preferred qualifications", "preferred_qualifications"))
+            if job.get(key)
+        )
+        record = make_record(
+            "amazon", board, job.get("id_icims") or job.get("id"), job.get("title"), "Amazon",
+            "https://www.amazon.jobs" + str(job.get("job_path") or ""), job.get("description"),
+            job.get("normalized_location") or job.get("location"), posted, job.get("job_schedule_type"),
+            raw={k: v for k, v in job.items() if k not in ("description", "basic_qualifications", "preferred_qualifications")},
+            requirements=qualifications,
+            source_level="internship" if job.get("is_intern") else None,
+            tags=[job.get("job_category"), job.get("job_family")],
+        )
+        if record:
+            records.append(record)
+    return records
+
+
 SCRAPERS = {
     "greenhouse": scrape_greenhouse,
     "lever": scrape_lever,
@@ -542,6 +699,8 @@ SCRAPERS = {
     "smartrecruiters": scrape_smartrecruiters,
     "workday": scrape_workday,
     "himalayas": scrape_himalayas,
+    "amazon": scrape_amazon,
+    "oracle": scrape_oracle,
 }
 
 

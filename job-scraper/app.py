@@ -27,7 +27,7 @@ from htmlfmt import sanitize_html
 from enrich import SKILLS
 from search import options, search, suggest
 from post_jobs import ENV_FILE, JOBS_FILE, POSTED_FILE, build_payload, improve_payload, load_env, load_json
-from workowon import AuthError, WorkowonClient
+from workowon import AuthError, WorkowonClient, record_keys
 
 BASE_DIR = Path(__file__).resolve().parent
 EDITS_FILE = BASE_DIR / "edits.json"
@@ -38,6 +38,10 @@ load_env(ENV_FILE)
 app = Flask(__name__, static_folder="static")
 client = WorkowonClient()
 files_lock = threading.Lock()
+keys_lock = threading.Lock()
+# Jobs already on WorkOwon (workowon.job_keys), refreshed at most every few minutes.
+WORKOWON_KEYS_SECONDS = 5 * 60
+_workowon_keys: dict = {"at": 0.0, "keys": set()}
 
 
 def save_json(path: Path, data) -> None:
@@ -46,6 +50,17 @@ def save_json(path: Path, data) -> None:
 
 def catalog() -> list[dict]:
     return load_json(BOARDS_FILE, {}).get("boards", [])
+
+
+def workowon_keys() -> set[str]:
+    """Keys of jobs already on WorkOwon, so search and posting skip them. Empty until logged in."""
+    with keys_lock:
+        if time.time() - _workowon_keys["at"] > WORKOWON_KEYS_SECONDS:
+            try:
+                _workowon_keys.update(at=time.time(), keys=client.external_job_keys())
+            except Exception as exc:  # not logged in or API down: fall back to the local posted list
+                logging.warning("Could not load jobs already on WorkOwon: %s", exc)
+        return _workowon_keys["keys"]
 
 
 def clean_payload(payload: dict) -> dict:
@@ -177,7 +192,7 @@ def get_suggestions():
 def run_search():
     criteria = request.get_json(force=True) or {}
     exclude = set(load_json(POSTED_FILE, {})) | set(load_json(SKIPPED_FILE, {}))
-    result = search(criteria, catalog(), exclude)
+    result = search(criteria, catalog(), exclude, workowon_keys())
     records = result["records"]
     # Keep found jobs in jobs.json too, so the command-line poster can use them.
     with files_lock:
@@ -264,6 +279,9 @@ def post_jobs():
             if key in load_json(POSTED_FILE, {}):
                 results.append({"sourceKey": key, "ok": True, "message": "Already posted"})
                 continue
+        if record_keys(payload) & workowon_keys():
+            results.append({"sourceKey": key, "ok": True, "message": "Already on WorkOwon"})
+            continue
         try:
             ok, message, body = client.post_external_job(api_payload(payload))
         except AuthError as exc:
@@ -272,6 +290,9 @@ def post_jobs():
             results.append({"sourceKey": key, "ok": False, "message": str(exc)})
             continue
         if ok:
+            with keys_lock:
+                # Also stops the same job being posted twice from one batch.
+                _workowon_keys["keys"] |= record_keys(payload)
             with files_lock:
                 posted = load_json(POSTED_FILE, {})
                 posted[key] = {
