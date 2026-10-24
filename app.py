@@ -22,6 +22,7 @@ from pathlib import Path
 import requests
 from flask import Flask, jsonify, request, send_from_directory
 
+import duplicates
 from curate import curate_jobs, new_stats, payload_to_input
 from htmlfmt import sanitize_html
 from enrich import SKILLS
@@ -53,14 +54,16 @@ def catalog() -> list[dict]:
 
 
 def workowon_keys() -> set[str]:
-    """Keys of jobs already on WorkOwon, so search and posting skip them. Empty until logged in."""
+    """Keys of jobs already on WorkOwon, so search and posting skip them: the admin external-jobs list
+    (once logged in) plus every published job from the public job search API."""
     with keys_lock:
         if time.time() - _workowon_keys["at"] > WORKOWON_KEYS_SECONDS:
             try:
                 _workowon_keys.update(at=time.time(), keys=client.external_job_keys())
             except Exception as exc:  # not logged in or API down: fall back to the local posted list
                 logging.warning("Could not load jobs already on WorkOwon: %s", exc)
-        return _workowon_keys["keys"]
+        keys = _workowon_keys["keys"]
+    return keys | duplicates.site_job_keys()
 
 
 def clean_payload(payload: dict) -> dict:
@@ -79,6 +82,7 @@ def api_payload(payload: dict) -> dict:
 def to_view(jobs: list[dict]) -> list[dict]:
     """Rule-based payloads only: no AI here. Saved edits (including earlier AI improvements) win."""
     edits = load_json(EDITS_FILE, {})
+    site_jobs = duplicates.site_jobs()
     items = []
     for job in jobs:
         key = job["sourceKey"]
@@ -93,6 +97,8 @@ def to_view(jobs: list[dict]) -> list[dict]:
             "edited": key in edits,
             "aiImproved": bool(payload.get("_ai")),
             "payload": payload,
+            # Closest job already live on WorkOwon, if any looks like this one.
+            "duplicate": duplicates.best_match(payload, site_jobs),
         })
     return items
 
@@ -217,7 +223,8 @@ def save_edit(key: str):
         edits = load_json(EDITS_FILE, {})
         edits[key] = clean_payload(payload)
         save_json(EDITS_FILE, edits)
-    return jsonify({"saved": True})
+    # A changed title, company or city changes the duplicate score.
+    return jsonify({"saved": True, "duplicate": duplicates.best_match(edits[key])})
 
 
 @app.post("/api/improve")
@@ -241,7 +248,7 @@ def improve_jobs():
             payload = clean_payload(improve_payload(item["payload"], curated[key], sectors.get(key)))
             payload["_ai"] = True
             edits[key] = payload
-            improved.append({"sourceKey": key, "payload": payload})
+            improved.append({"sourceKey": key, "payload": payload, "duplicate": duplicates.best_match(payload)})
         save_json(EDITS_FILE, edits)
     if not improved and stats["errors"]:
         return error(f"AI could not improve these jobs: {stats['errors'][0]}", 502)
@@ -282,6 +289,12 @@ def post_jobs():
         if record_keys(payload) & workowon_keys():
             results.append({"sourceKey": key, "ok": True, "message": "Already on WorkOwon"})
             continue
+        match = duplicates.best_match(payload)
+        if match and match["level"] == "likely" and not item.get("allowDuplicate"):
+            results.append({"sourceKey": key, "ok": False, "duplicate": match,
+                            "message": f"Not posted: {match['score']}% match with “{match['title']}” at {match['company']} already on WorkOwon. "
+                                       "Choose “Not a duplicate” if this is a different job."})
+            continue
         try:
             ok, message, body = client.post_external_job(api_payload(payload))
         except AuthError as exc:
@@ -293,6 +306,7 @@ def post_jobs():
             with keys_lock:
                 # Also stops the same job being posted twice from one batch.
                 _workowon_keys["keys"] |= record_keys(payload)
+            duplicates.remember_posted(payload, (body.get("data") or {}).get("jobId"))
             with files_lock:
                 posted = load_json(POSTED_FILE, {})
                 posted[key] = {

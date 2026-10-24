@@ -1,11 +1,12 @@
 # WorkOwon JobSync
 
-Find the latest jobs in India (12,000+ posted in the last 30 days) from 180 company career sites and job platforms, review and edit them, optionally polish them with AI, and post them to WorkOwon.
+Find the latest jobs in India (12,000+ posted in the last 30 days) from 225 company career sites and job platforms, review and edit them, optionally polish them with AI, and post them to WorkOwon.
 
 ## Features
 
 - **Search** company career sites (Greenhouse, Lever, Ashby, SmartRecruiters, Workday, Oracle Recruiting, Amazon Jobs) and the Himalayas remote-jobs platform by keywords (with suggestions for roles, skills and companies as you type), location, experience (internship, fresher, 1–3 yrs…), sector, company type, source and posting date. Exclude title words, match keywords in the title only, or show only jobs with a salary. Newest jobs come first (or sort by biggest employers).
 - **No duplicates**: jobs already on WorkOwon (checked against its external-jobs list after you log in) are hidden and can't be posted again, and the same job found on two sites or reposted under a new requisition (same company, title and city) is shown once.
+- **Duplicate score**: every job is compared with all jobs live on WorkOwon (read from its public job search API, so jobs posted directly on the site count too). Near matches, like a reworded title, "Pvt Ltd" in the name or a new requisition ID, show a match score with a link to the existing job. A **likely duplicate** (90%+) can't be selected or posted until you click *Not a duplicate*; *Skip, it's a duplicate* hides it for good. A **possible duplicate** (60–89%) is a warning only. The command-line poster skips likely duplicates.
 - **Himalayas jobs** keep their Himalayas `applicationLink` as the listing URL, unchanged, as their API terms require.
 - **Review & edit** every field before posting: title, rich-text description and requirements, experience, salary, locations, skills, benefits, tags.
 - **AI on demand**: the ✨ Improve buttons rewrite jobs in the WorkOwon style with Gemini. AI is never used unless you click one; results are cached so a job is never paid for twice.
@@ -56,6 +57,7 @@ Open http://127.0.0.1:5050, log in with your WorkOwon admin account, search, rev
 | `curate.py` | Gemini rewriting (only on request) |
 | `htmlfmt.py` | HTML formatting to the site's format |
 | `workowon.py` | WorkOwon API client (login, refresh, post) |
+| `duplicates.py` | Duplicate score against jobs already live on WorkOwon |
 | `boards.json` | Company catalog: career site, sector, type, India openings |
 
 Local state (`.env`, `.session.json`, `edits.json`, `posted_jobs.json`, `curated_jobs.json`, `skipped.json`, `jobs.json`) is git-ignored.

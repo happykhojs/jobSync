@@ -34,6 +34,7 @@ import requests
 
 from curate import apply_curation, curate_jobs
 from htmlfmt import to_site_html
+from duplicates import best_match, remember_posted, site_job_keys
 from workowon import BASE_URL, external_job_keys, record_keys
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -212,14 +213,21 @@ def main() -> None:
     })
 
     # Skip jobs already on WorkOwon (posted from another machine, or the same job from another site).
-    existing = external_job_keys(lambda path, params: session.get(BASE_URL + path, params=params, timeout=TIMEOUT))
+    existing = external_job_keys(lambda path, params: session.get(BASE_URL + path, params=params, timeout=TIMEOUT)) | site_job_keys()
     ok = failed = 0
     for job in pending:
         if record_keys(job) & existing:
             logging.info("Already on WorkOwon, skipped: %s | %s", job["externalCompanyName"], job["title"])
             continue
+        payload = build_payload(job)
+        match = best_match(payload)
+        if match and match["level"] == "likely":
+            # Review these in the dashboard, where the admin can mark them "Not a duplicate".
+            logging.info("Likely duplicate (%d%% match with %s | %s), skipped: %s | %s",
+                         match["score"], match["company"], match["title"], job["externalCompanyName"], job["title"])
+            continue
         try:
-            response = session.post(API_URL, json=build_payload(job), timeout=TIMEOUT)
+            response = session.post(API_URL, json=payload, timeout=TIMEOUT)
         except requests.RequestException as exc:
             logging.error("%s | %s: %s", job["externalCompanyName"], job["title"], exc)
             failed += 1
@@ -227,6 +235,7 @@ def main() -> None:
         if response.ok:
             ok += 1
             existing |= record_keys(job)
+            remember_posted(payload, None)
             posted[job["sourceKey"]] = {
                 "postedAt": datetime.now(timezone.utc).isoformat(),
                 "title": job["title"],
