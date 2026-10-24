@@ -3,6 +3,16 @@
   "locationFilter": "delhi|gurgaon|gurugram|noida|\\bncr\\b|faridabad|ghaziabad",
   "boards": [
     {
+      "provider": "workday",
+      "board": "accenture/wd103/AccentureCareers",
+      "companyName": "Accenture",
+      "website": "https://www.accenture.com",
+      "sector": "Consulting & Professional Services",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 35713
+    },
+    {
       "provider": "himalayas",
       "board": "india-remote",
       "companyName": "Himalayas (remote jobs)",
@@ -94,6 +104,16 @@
     },
     {
       "provider": "workday",
+      "board": "hpe/wd5/Jobsathpe",
+      "companyName": "Hewlett Packard Enterprise",
+      "website": "https://www.hpe.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 378
+    },
+    {
+      "provider": "workday",
       "board": "barclays/wd3/External_Career_Site_Barclays",
       "companyName": "Barclays",
       "website": "https://home.barclays",
@@ -111,6 +131,16 @@
       "companyType": "Multinational (MNC)",
       "country": "in",
       "indiaOpenings": 348
+    },
+    {
+      "provider": "smartrecruiters",
+      "board": "Eurofins",
+      "companyName": "Eurofins",
+      "website": "https://www.eurofins.com",
+      "sector": "Pharma & Life Sciences",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 341
     },
     {
       "provider": "workday",
@@ -161,6 +191,16 @@
       "companyType": "Multinational (MNC)",
       "country": "in",
       "indiaOpenings": 286
+    },
+    {
+      "provider": "workday",
+      "board": "kyndryl/wd5/KyndrylProfessionalCareers",
+      "companyName": "Kyndryl",
+      "website": "https://www.kyndryl.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 275
     },
     {
       "provider": "workday",
@@ -293,6 +333,26 @@
     },
     {
       "provider": "workday",
+      "board": "dxctechnology/wd1/DXCJobs",
+      "companyName": "DXC Technology",
+      "website": "https://www.dxc.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 146
+    },
+    {
+      "provider": "workday",
+      "board": "aptiv/wd5/APTIV_CAREERS",
+      "companyName": "Aptiv",
+      "website": "https://www.aptiv.com",
+      "sector": "Automotive",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 145
+    },
+    {
+      "provider": "workday",
       "board": "fis/wd5/SearchJobs",
       "companyName": "FIS",
       "website": "https://www.fisglobal.com",
@@ -330,6 +390,16 @@
       "companyType": "Multinational (MNC)",
       "country": "in",
       "indiaOpenings": 126
+    },
+    {
+      "provider": "workday",
+      "board": "harman/wd3/HARMAN",
+      "companyName": "HARMAN",
+      "website": "https://www.harman.com",
+      "sector": "Automotive",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 125
     },
     {
       "provider": "workday",
@@ -373,6 +443,36 @@
     },
     {
       "provider": "workday",
+      "board": "ecolab/wd1/Ecolab_External",
+      "companyName": "Ecolab",
+      "website": "https://www.ecolab.com",
+      "sector": "Manufacturing & Industrial",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 109
+    },
+    {
+      "provider": "workday",
+      "board": "magna/wd3/Magna",
+      "companyName": "Magna",
+      "website": "https://www.magna.com",
+      "sector": "Automotive",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 105
+    },
+    {
+      "provider": "workday",
+      "board": "unisys/wd5/External",
+      "companyName": "Unisys",
+      "website": "https://www.unisys.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 103
+    },
+    {
+      "provider": "workday",
       "board": "3m/wd1/Search",
       "companyName": "3M",
       "website": "https://www.3m.com",
@@ -386,6 +486,16 @@
       "board": "analogdevices/wd1/External",
       "companyName": "Analog Devices",
       "website": "https://www.analog.com",
+      "sector": "Electronics & Semiconductors",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 102
+    },
+    {
+      "provider": "workday",
+      "board": "microchiphr/wd5/External",
+      "companyName": "Microchip",
+      "website": "https://www.microchip.com",
       "sector": "Electronics & Semiconductors",
       "companyType": "Multinational (MNC)",
       "country": "in",
@@ -529,6 +639,16 @@
     },
     {
       "provider": "workday",
+      "board": "globalfoundries/wd1/External",
+      "companyName": "GlobalFoundries",
+      "website": "https://www.gf.com",
+      "sector": "Electronics & Semiconductors",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 80
+    },
+    {
+      "provider": "workday",
       "board": "agilent/wd5/Agilent_Careers",
       "companyName": "Agilent",
       "website": "https://www.agilent.com",
@@ -558,6 +678,16 @@
       "indiaOpenings": 71
     },
     {
+      "provider": "smartrecruiters",
+      "board": "NielsenIQ",
+      "companyName": "NielsenIQ",
+      "website": "https://www.nielseniq.com",
+      "sector": "Media & Advertising",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 70
+    },
+    {
       "provider": "workday",
       "board": "relx/wd3/relx",
       "companyName": "RELX (Elsevier, LexisNexis)",
@@ -576,6 +706,16 @@
       "companyType": "Multinational (MNC)",
       "country": "in",
       "indiaOpenings": 63
+    },
+    {
+      "provider": "workday",
+      "board": "nike/wd1/nke",
+      "companyName": "Nike",
+      "website": "https://www.nike.com",
+      "sector": "Retail & E-commerce",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 62
     },
     {
       "provider": "workday",
@@ -632,6 +772,16 @@
       "companyName": "Flex",
       "website": "https://flex.com",
       "sector": "Electronics & Semiconductors",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 56
+    },
+    {
+      "provider": "workday",
+      "board": "icon/wd3/broadbean_external",
+      "companyName": "ICON plc",
+      "website": "https://www.iconplc.com",
+      "sector": "Pharma & Life Sciences",
       "companyType": "Multinational (MNC)",
       "country": "in",
       "indiaOpenings": 56
@@ -834,6 +984,26 @@
     },
     {
       "provider": "workday",
+      "board": "guidewire/wd5/external",
+      "companyName": "Guidewire",
+      "website": "https://www.guidewire.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 44
+    },
+    {
+      "provider": "smartrecruiters",
+      "board": "Linkedin3",
+      "companyName": "LinkedIn",
+      "website": "https://www.linkedin.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 44
+    },
+    {
+      "provider": "workday",
       "board": "gartner/wd5/EXT",
       "companyName": "Gartner",
       "website": "https://www.gartner.com",
@@ -848,6 +1018,16 @@
       "companyName": "Motorola Solutions",
       "website": "https://www.motorolasolutions.com",
       "sector": "Electronics & Semiconductors",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 42
+    },
+    {
+      "provider": "workday",
+      "board": "thomsonreuters/wd5/External_Career_Site",
+      "companyName": "Thomson Reuters",
+      "website": "https://www.thomsonreuters.com",
+      "sector": "Media & Advertising",
       "companyType": "Multinational (MNC)",
       "country": "in",
       "indiaOpenings": 42
@@ -878,6 +1058,16 @@
       "companyName": "Edwards Lifesciences",
       "website": "https://www.edwards.com",
       "sector": "Healthcare & Medical Devices",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 39
+    },
+    {
+      "provider": "workday",
+      "board": "sabre/wd1/SabreJobs",
+      "companyName": "Sabre",
+      "website": "https://www.sabre.com",
+      "sector": "Travel & Hospitality",
       "companyType": "Multinational (MNC)",
       "country": "in",
       "indiaOpenings": 39
@@ -1052,6 +1242,16 @@
     },
     {
       "provider": "smartrecruiters",
+      "board": "AbbVie",
+      "companyName": "AbbVie",
+      "website": "https://www.abbvie.com",
+      "sector": "Pharma & Life Sciences",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 29
+    },
+    {
+      "provider": "smartrecruiters",
       "board": "AveryDennison",
       "companyName": "Avery Dennison",
       "website": "https://www.averydennison.com",
@@ -1091,6 +1291,16 @@
     },
     {
       "provider": "workday",
+      "board": "disney/wd5/disneycareer",
+      "companyName": "Disney",
+      "website": "https://www.disney.com",
+      "sector": "Media & Advertising",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 27
+    },
+    {
+      "provider": "workday",
       "board": "warnerbros/wd5/Global",
       "companyName": "Warner Bros. Discovery",
       "website": "https://www.wbd.com",
@@ -1110,6 +1320,16 @@
       "indiaOpenings": 26
     },
     {
+      "provider": "smartrecruiters",
+      "board": "SGS",
+      "companyName": "SGS",
+      "website": "https://www.sgs.com",
+      "sector": "Consulting & Professional Services",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 26
+    },
+    {
       "provider": "workday",
       "board": "workday/wd5/workday",
       "companyName": "Workday",
@@ -1124,6 +1344,16 @@
       "board": "autodesk/wd1/EXT",
       "companyName": "Autodesk",
       "website": "https://www.autodesk.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 24
+    },
+    {
+      "provider": "workday",
+      "board": "trimble/wd1/TrimbleCareers",
+      "companyName": "Trimble",
+      "website": "https://www.trimble.com",
       "sector": "IT & Software",
       "companyType": "Multinational (MNC)",
       "country": "in",
@@ -1159,10 +1389,30 @@
     },
     {
       "provider": "greenhouse",
+      "board": "smartsheet",
+      "companyName": "Smartsheet",
+      "website": "https://www.smartsheet.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 22
+    },
+    {
+      "provider": "greenhouse",
       "board": "toast",
       "companyName": "Toast",
       "website": "https://pos.toasttab.com",
       "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 21
+    },
+    {
+      "provider": "workday",
+      "board": "dow/wd1/ExternalCareers",
+      "companyName": "Dow",
+      "website": "https://www.dow.com",
+      "sector": "Manufacturing & Industrial",
       "companyType": "Multinational (MNC)",
       "country": "in",
       "indiaOpenings": 21
@@ -1195,6 +1445,36 @@
       "companyType": "Multinational (MNC)",
       "country": "in",
       "indiaOpenings": 20
+    },
+    {
+      "provider": "workday",
+      "board": "illumina/wd1/illumina-careers",
+      "companyName": "Illumina",
+      "website": "https://www.illumina.com",
+      "sector": "Pharma & Life Sciences",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 20
+    },
+    {
+      "provider": "workday",
+      "board": "unilever/wd3/Unilever_Experienced_Professionals",
+      "companyName": "Unilever",
+      "website": "https://www.unilever.com",
+      "sector": "FMCG & Consumer Goods",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 19
+    },
+    {
+      "provider": "workday",
+      "board": "fiserv/wd5/EXT",
+      "companyName": "Fiserv",
+      "website": "https://www.fiserv.com",
+      "sector": "Fintech",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 19
     },
     {
       "provider": "greenhouse",
@@ -1245,6 +1525,16 @@
     },
     {
       "provider": "workday",
+      "board": "alcon/wd5/careers_alcon",
+      "companyName": "Alcon",
+      "website": "https://www.alcon.com",
+      "sector": "Healthcare & Medical Devices",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 17
+    },
+    {
+      "provider": "workday",
       "board": "kimberlyclark/wd1/GLOBAL",
       "companyName": "Kimberly-Clark",
       "website": "https://www.kimberly-clark.com",
@@ -1280,6 +1570,16 @@
       "website": "https://www.elastic.co",
       "sector": "IT & Software",
       "companyType": "Multinational (MNC)",
+      "indiaOpenings": 15
+    },
+    {
+      "provider": "workday",
+      "board": "capitalone/wd12/Capital_One",
+      "companyName": "Capital One",
+      "website": "https://www.capitalone.com",
+      "sector": "Banking & Financial Services",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
       "indiaOpenings": 15
     },
     {
@@ -1328,6 +1628,16 @@
       "companyName": "Grab",
       "website": "https://www.grab.com",
       "sector": "Travel & Hospitality",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 13
+    },
+    {
+      "provider": "greenhouse",
+      "board": "zoominfo",
+      "companyName": "ZoomInfo",
+      "website": "https://www.zoominfo.com",
+      "sector": "IT & Software",
       "companyType": "Multinational (MNC)",
       "country": "in",
       "indiaOpenings": 13
@@ -1382,6 +1692,16 @@
     },
     {
       "provider": "workday",
+      "board": "expedia/wd108/search",
+      "companyName": "Expedia",
+      "website": "https://www.expediagroup.com",
+      "sector": "Travel & Hospitality",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 12
+    },
+    {
+      "provider": "workday",
       "board": "ciena/wd5/Careers",
       "companyName": "Ciena",
       "website": "https://www.ciena.com",
@@ -1424,6 +1744,36 @@
       "website": "https://www.gm.com",
       "sector": "Automotive",
       "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 10
+    },
+    {
+      "provider": "greenhouse",
+      "board": "commvault",
+      "companyName": "Commvault",
+      "website": "https://www.commvault.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 10
+    },
+    {
+      "provider": "ashby",
+      "board": "clickhouse",
+      "companyName": "ClickHouse",
+      "website": "https://www.clickhouse.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 10
+    },
+    {
+      "provider": "ashby",
+      "board": "plane",
+      "companyName": "Plane",
+      "website": "https://www.plane.so",
+      "sector": "IT & Software",
+      "companyType": "Indian Startup",
       "country": "in",
       "indiaOpenings": 10
     },
@@ -1482,6 +1832,26 @@
       "website": "https://www.airbnb.com",
       "sector": "Travel & Hospitality",
       "companyType": "Multinational (MNC)",
+      "indiaOpenings": 9
+    },
+    {
+      "provider": "lever",
+      "board": "nium",
+      "companyName": "Nium",
+      "website": "https://www.nium.com",
+      "sector": "Fintech",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 9
+    },
+    {
+      "provider": "smartrecruiters",
+      "board": "Ubisoft2",
+      "companyName": "Ubisoft",
+      "website": "https://www.ubisoft.com",
+      "sector": "Media & Advertising",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
       "indiaOpenings": 9
     },
     {
@@ -1650,6 +2020,16 @@
       "indiaOpenings": 5
     },
     {
+      "provider": "smartrecruiters",
+      "board": "Endava",
+      "companyName": "Endava",
+      "website": "https://www.endava.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 5
+    },
+    {
       "provider": "greenhouse",
       "board": "observeai",
       "companyName": "Observe.AI",
@@ -1710,6 +2090,26 @@
       "indiaOpenings": 4
     },
     {
+      "provider": "greenhouse",
+      "board": "anthropic",
+      "companyName": "Anthropic",
+      "website": "https://www.anthropic.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 4
+    },
+    {
+      "provider": "greenhouse",
+      "board": "adyen",
+      "companyName": "Adyen",
+      "website": "https://www.adyen.com",
+      "sector": "Fintech",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 4
+    },
+    {
       "provider": "ashby",
       "board": "atlan",
       "companyName": "Atlan",
@@ -1725,6 +2125,16 @@
       "website": "https://grafana.com",
       "sector": "IT & Software",
       "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 3
+    },
+    {
+      "provider": "ashby",
+      "board": "composio",
+      "companyName": "Composio",
+      "website": "https://www.composio.dev",
+      "sector": "IT & Software",
+      "companyType": "Indian Startup",
       "country": "in",
       "indiaOpenings": 3
     },
@@ -1793,6 +2203,16 @@
       "companyName": "Vercel",
       "website": "https://vercel.com",
       "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 1
+    },
+    {
+      "provider": "lever",
+      "board": "spotify",
+      "companyName": "Spotify",
+      "website": "https://www.spotify.com",
+      "sector": "Media & Advertising",
       "companyType": "Multinational (MNC)",
       "country": "in",
       "indiaOpenings": 1

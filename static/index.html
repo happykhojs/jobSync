@@ -114,6 +114,16 @@
   .status.ok { background: var(--ok-soft); color: var(--ok); }
   .status.err { background: var(--err-soft); color: var(--err); }
   .status.busy { background: var(--accent-soft); color: var(--accent); }
+  .chip.dup-likely { background: var(--err-soft); color: var(--err); font-weight: 600; }
+  .chip.dup-possible { background: var(--warn-soft); color: #b54708; font-weight: 600; }
+  .dup { font-size: 13px; margin-top: 8px; padding: 8px 10px; border-radius: 6px; display: flex;
+    flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+  .dup.likely { background: var(--err-soft); color: #a3001b; }
+  .dup.possible { background: var(--warn-soft); color: #7a3e00; }
+  .dup.cleared { background: #f6f7f8; color: var(--muted); }
+  .dup .dup-text { flex: 1 1 260px; }
+  .dup a { color: inherit; font-weight: 600; }
+  .dup .link { color: inherit; text-decoration: underline; }
 
   .empty { text-align: center; color: var(--muted); padding: 60px 20px; background: var(--surface);
     border: 1px dashed var(--border-strong); border-radius: var(--radius); }
@@ -525,6 +535,28 @@ async function runSearch(c) {
   } finally { $("searchBtn").disabled = false; }
 }
 
+/* ---------- duplicates ---------- */
+// A likely duplicate of a job already on WorkOwon can't be selected or posted until the admin clears it.
+const blocked = (job) => job.duplicate?.level === "likely" && !job.allowDuplicate;
+
+function dupChip(job) {
+  const d = job.duplicate; if (!d || job.allowDuplicate) return "";
+  return `<span class="chip dup-${d.level}" title="${esc(d.reason)}">${d.score}% match · ${d.level === "likely" ? "Likely duplicate" : "Possible duplicate"}</span>`;
+}
+
+function dupNotice(job) {
+  const d = job.duplicate; if (!d) return "";
+  const where = [d.company, d.city].filter(Boolean).map(esc).join(" · ");
+  const more = d.others?.length ? ` (+${d.others.length} more similar)` : "";
+  const existing = `<a href="${esc(d.url)}" target="_blank" rel="noopener">“${esc(d.title)}”</a> ${where ? `· ${where}` : ""}${d.publishedAt ? ` · posted ${esc(timeAgo(d.publishedAt))}` : ""}`;
+  if (job.allowDuplicate) return `<div class="dup cleared"><span class="dup-text">Marked not a duplicate of ${existing}</span>
+    <button class="link" data-act="undoDup">Undo</button></div>`;
+  return `<div class="dup ${d.level}"><span class="dup-text">${d.level === "likely" ? "⚠ Already on your website?" : "Similar job on your website:"}
+    ${existing}${more} · <i>${esc(d.reason)}</i></span>
+    <button class="link" data-act="notDup">Not a duplicate</button>
+    <button class="link" data-act="dupSkip" title="Hide this job for good">Skip, it's a duplicate</button></div>`;
+}
+
 function renderList() {
   if (!state.jobs.length) { $("list").innerHTML = `<div class="empty">No new jobs match these filters. Try more locations, a longer date range or fewer filters.</div>`; updatePostBtn(); return; }
   $("list").innerHTML = state.jobs.map((job) => {
@@ -533,14 +565,15 @@ function renderList() {
     const place = [loc.city, loc.state].filter(Boolean).join(", ") || loc.country || "";
     const extraLocs = (p.locations || []).length > 1 ? ` +${p.locations.length - 1}` : "";
     const yrs = p.experienceMinYears != null ? (p.experienceMaxYears != null ? `${p.experienceMinYears}–${p.experienceMaxYears} yrs` : `${p.experienceMinYears}+ yrs`) : "";
-    const done = st && st.type === "ok";
+    const done = st && st.type === "ok", locked = !done && blocked(job);
     return `<div class="card ${state.selected.has(k) ? "selected" : ""} ${done ? "done" : ""}" data-key="${esc(k)}">
-      <input type="checkbox" data-act="toggle" ${state.selected.has(k) ? "checked" : ""} ${done ? "disabled" : ""} aria-label="Select job">
+      <input type="checkbox" data-act="toggle" ${state.selected.has(k) ? "checked" : ""} ${done || locked ? "disabled" : ""} aria-label="Select job" ${locked ? `title="Likely duplicate: choose “Not a duplicate” to post it"` : ""}>
       <img class="logo" src="${esc(p.externalCompanyLogoUrl || "")}" alt="" onerror="this.style.visibility='hidden'">
       <div>
         <p class="title" data-act="edit">${esc(p.title)}</p>
         <div class="sub">${esc(p.externalCompanyName)}${place ? " · " + esc(place) + extraLocs : ""}${job.sourcePostedAt ? " · posted " + esc(timeAgo(job.sourcePostedAt)) : ""}</div>
         <div class="chips">
+          ${done ? "" : dupChip(job)}
           ${job.sourceName ? `<span class="chip" title="Found on this job platform">via ${esc(job.sourceName.replace(/\s*\(.*\)$/, ""))}</span>` : ""}
           ${job.sector ? `<span class="chip">${esc(job.sector)}</span>` : ""}
           ${p.employmentType ? `<span class="chip">${esc(pretty(p.employmentType))}</span>` : ""}
@@ -549,6 +582,7 @@ function renderList() {
           ${yrs ? `<span class="chip">${esc(yrs)}</span>` : ""}
           ${job.aiImproved ? `<span class="chip ai">✨ AI improved</span>` : job.edited ? `<span class="chip edited">Edited</span>` : ""}
         </div>
+        ${done ? "" : dupNotice(job)}
         ${st ? `<div class="status ${st.type}">${esc(st.text)}</div>` : ""}
       </div>
       <div class="actions">
@@ -565,10 +599,13 @@ $("list").addEventListener("click", async (e) => {
   if (act === "toggle") { e.target.checked ? state.selected.add(key) : state.selected.delete(key); renderList(); }
   if (act === "edit") openEditor(key);
   if (act === "improve") improveJobs([key]);
-  if (act === "skip") {
+  const job = state.jobs.find((j) => j.sourceKey === key);
+  if (act === "notDup") { job.allowDuplicate = true; delete state.status[key]; renderList(); toast("OK, you can select and post this job."); }
+  if (act === "undoDup") { job.allowDuplicate = false; if (blocked(job)) state.selected.delete(key); renderList(); }
+  if (act === "skip" || act === "dupSkip") {
     await api(`/api/jobs/${key}/skip`, { method: "POST" });
     state.jobs = state.jobs.filter((j) => j.sourceKey !== key); state.selected.delete(key);
-    renderList(); toast("Job skipped. It won't show again.");
+    renderList(); toast(act === "dupSkip" ? "Marked as duplicate. It won't show again." : "Job skipped. It won't show again.");
     dispatchEvent(new CustomEvent("jobsync:skipped"));
   }
 });
@@ -615,7 +652,8 @@ async function improveJobs(keys, fromEditor = false) {
     const data = await api("/api/improve", { method: "POST", body: JSON.stringify({ jobs }) });
     for (const r of data.jobs) {
       const job = state.jobs.find((j) => j.sourceKey === r.sourceKey);
-      Object.assign(job, { payload: r.payload, edited: true, aiImproved: true });
+      Object.assign(job, { payload: r.payload, duplicate: r.duplicate, edited: true, aiImproved: true });
+      if (blocked(job)) state.selected.delete(r.sourceKey);
       delete state.status[r.sourceKey];
     }
     keys.filter((k) => state.status[k]?.type === "busy").forEach((k) => (state.status[k] = { type: "err", text: "AI couldn't improve this job. Try again." }));
@@ -640,7 +678,7 @@ $("improveOneBtn").onclick = () => improveJobs([state.editing], true);
 $("selectBtn").onclick = () => {
   const n = Math.max(1, parseInt($("selectCount").value) || 1);
   state.selected.clear();
-  state.jobs.filter((j) => state.status[j.sourceKey]?.type !== "ok").slice(0, n).forEach((j) => state.selected.add(j.sourceKey));
+  state.jobs.filter((j) => state.status[j.sourceKey]?.type !== "ok" && !blocked(j)).slice(0, n).forEach((j) => state.selected.add(j.sourceKey));
   renderList();
 };
 
@@ -648,7 +686,7 @@ $("selectBtn").onclick = () => {
 $("postBtn").onclick = () => state.session.loggedIn ? postSelected() : openLogin(postSelected);
 
 async function postSelected() {
-  const keys = state.jobs.map((j) => j.sourceKey).filter((k) => state.selected.has(k));
+  const keys = state.jobs.filter((j) => state.selected.has(j.sourceKey) && !blocked(j)).map((j) => j.sourceKey);
   if (!keys.length) return;
   $("postBtn").disabled = true; $("searchBtn").disabled = true;
   let ok = 0;
@@ -657,8 +695,9 @@ async function postSelected() {
     state.status[key] = { type: "busy", text: "Posting…" }; renderList();
     const job = state.jobs.find((j) => j.sourceKey === key);
     try {
-      const { results } = await api("/api/post", { method: "POST", body: JSON.stringify({ jobs: [{ sourceKey: key, payload: job.payload }] }) });
+      const { results } = await api("/api/post", { method: "POST", body: JSON.stringify({ jobs: [{ sourceKey: key, payload: job.payload, allowDuplicate: !!job.allowDuplicate }] }) });
       const r = results[0];
+      if (r.duplicate) { job.duplicate = r.duplicate; state.selected.delete(key); }
       state.status[key] = r.ok ? { type: "ok", text: "Posted to your website ✓" } : { type: "err", text: r.message };
       if (r.ok) {
         ok++; state.selected.delete(key); renderList(); window.Fun?.celebrate(...cardPoint(key));
@@ -810,11 +849,13 @@ async function saveEditor(selectAfter) {
   const key = state.editing, payload = readEditor();
   if (!payload.title || !payload.externalCompanyName || !payload.description) return toast("Title, company and description are required.");
   try {
-    await api(`/api/jobs/${key}`, { method: "PUT", body: JSON.stringify({ payload }) });
+    const saved = await api(`/api/jobs/${key}`, { method: "PUT", body: JSON.stringify({ payload }) });
     const job = state.jobs.find((j) => j.sourceKey === key);
-    job.payload = payload; job.edited = true;
-    if (selectAfter) state.selected.add(key);
-    closeEditor(); renderList(); toast("Saved");
+    job.payload = payload; job.edited = true; job.duplicate = saved.duplicate;
+    if (blocked(job)) state.selected.delete(key);
+    else if (selectAfter) state.selected.add(key);
+    closeEditor(); renderList();
+    toast(blocked(job) ? `Saved. Still a ${job.duplicate.score}% match with a job on your website.` : "Saved");
     dispatchEvent(new CustomEvent("jobsync:saved"));
   } catch (err) { toast(err.message); }
 }
