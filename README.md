@@ -1,10 +1,10 @@
 # WorkOwon JobSync
 
-Find the latest jobs in India (12,000+ posted in the last 30 days) from 225 company career sites and job platforms, review and edit them, optionally polish them with AI, and post them to WorkOwon.
+Find the latest jobs in India (12,000+ posted in the last 30 days) from 276 company career sites and job platforms, review and edit them, optionally polish them with AI, and post them to WorkOwon.
 
 ## Features
 
-- **Search** company career sites (Greenhouse, Lever, Ashby, SmartRecruiters, Workday, Oracle Recruiting, Amazon Jobs) and the Himalayas remote-jobs platform by keywords (with suggestions for roles, skills and companies as you type), location, experience (internship, fresher, 1–3 yrs…), sector, company type, source and posting date. Exclude title words, match keywords in the title only, or show only jobs with a salary. Newest jobs come first (or sort by biggest employers).
+- **Search** company career sites (Greenhouse, Lever, Ashby, SmartRecruiters, Workday, Oracle Recruiting, Amazon Jobs) and the Himalayas remote-jobs platform by keywords (with suggestions for roles, skills and companies as you type), location, experience (internship, fresher, 1–3 yrs…), role type (tech or non-tech, from the job title), company size (large, mid-size, small by India openings), sector, company type, source and posting date. Exclude title words, match keywords in the title only, show only jobs with a salary, or only companies added in the last 30 days (marked *new* in the Companies filter). Newest jobs come first (or sort by biggest employers).
 - **No duplicates**: jobs already on WorkOwon (checked against its external-jobs list after you log in) are hidden and can't be posted again, and the same job found on two sites or reposted under a new requisition (same company, title and city) is shown once.
 - **Duplicate score**: every job is compared with all jobs live on WorkOwon (read from its public job search API, so jobs posted directly on the site count too). Near matches, like a reworded title, "Pvt Ltd" in the name or a new requisition ID, show a match score with a link to the existing job. A **likely duplicate** (90%+) can't be selected or posted until you click *Not a duplicate*; *Skip, it's a duplicate* hides it for good. A **possible duplicate** (60–89%) is a warning only. The command-line poster skips likely duplicates.
 - **Himalayas jobs** keep their Himalayas `applicationLink` as the listing URL, unchanged, as their API terms require.

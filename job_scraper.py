@@ -426,6 +426,12 @@ def workday_country_facet(board: str) -> tuple[str, list[str], int] | None:
             return param, [value["id"]], int(value.get("count") or 0)
     cities = [(param, v) for param, v in pairs if param.lower() in ("locations", "location") and INDIA_PLACES.search(v.get("descriptor", ""))]
     if not cities:
+        # Some sites name their city facet differently (e.g. Baker Hughes: locationHierarchy). Only its
+        # top-level facet filters; the nested copy (locationHierarchy1 under locationMainGroup) is ignored.
+        top = {f.get("facetParameter") for f in data.get("facets") or []}
+        other = [(param, v) for param, v in pairs if param in top and param.lower().startswith("location") and INDIA_PLACES.search(v.get("descriptor", ""))]
+        cities = [(param, v) for param, v in other if param == other[0][0]] if other else []
+    if not cities:
         return None
     return cities[0][0], [v["id"] for _, v in cities], sum(int(v.get("count") or 0) for _, v in cities)
 

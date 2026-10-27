@@ -84,6 +84,7 @@
   .opt.on { background: var(--accent-soft); border-color: var(--accent); color: var(--accent); font-weight: 550; }
   .opt .cnt { color: var(--muted); font-weight: 400; font-size: 12px; }
   .opt.on .cnt { color: var(--accent); }
+  .opt .new { margin-left: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; color: #067647; background: #dcfae6; padding: 1px 5px; border-radius: 999px; }
   [data-filter="companies"] { max-height: 150px; overflow-y: auto; }
   .panel-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; gap: 10px; flex-wrap: wrap; }
 
@@ -231,11 +232,14 @@
       <div class="fgroup"><div class="flabel">Location</div><div class="chipset" data-filter="locations"></div></div>
       <div class="fgroup"><div class="flabel">Experience</div><div class="chipset" data-filter="experience"></div></div>
       <div class="fgroup"><div class="flabel">Source</div><div class="chipset" data-filter="sources"></div></div>
+      <div class="fgroup"><div class="flabel">Role type</div><div class="chipset" data-filter="roleTypes"></div></div>
+      <div class="fgroup"><div class="flabel">Company size</div><div class="chipset" data-filter="companySizes"></div></div>
       <div class="fgroup"><div class="flabel">Refine</div>
         <div class="refine">
           <input type="text" id="exclude" placeholder="Hide titles with, e.g. Senior, Sr, Lead">
           <label class="check"><input type="checkbox" id="titleOnly"> Keywords in title only</label>
           <label class="check"><input type="checkbox" id="salaryOnly"> Salary shown</label>
+          <label class="check"><input type="checkbox" id="newOnly"> Newly added companies only</label>
         </div></div>
       <div class="fgroup" style="grid-column:1/-1"><div class="flabel">Sector</div><div class="chipset" data-filter="sectors"></div></div>
       <div class="fgroup more"><div class="flabel">Company type</div><div class="chipset" data-filter="companyTypes"></div></div>
@@ -314,7 +318,7 @@ const ENUMS = {
   proficiencyLevel: ["BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT"],
   benefitType: ["HEALTH", "STOCK", "REMOTE", "GYM", "FOOD", "LEARNING", "VISA", "BONUS", "OTHER"],
 };
-const FILTER_KEYS = ["locations", "experience", "sources", "sectors", "companyTypes", "employmentTypes", "workplaceTypes", "companies"];
+const FILTER_KEYS = ["locations", "experience", "sources", "roleTypes", "companySizes", "sectors", "companyTypes", "employmentTypes", "workplaceTypes", "companies"];
 const state = {
   jobs: [], selected: new Set(), status: {}, session: { loggedIn: false }, editing: null,
   filters: Object.fromEntries(FILTER_KEYS.map((k) => [k, []])), lastCriteria: null,
@@ -393,12 +397,13 @@ function renderFilters(opts) {
   $("posted").innerHTML = opts.postedWithin.map((d) => `<option value="${d}">${d === 1 ? "Last 24 hours" : `Last ${d} days`}</option>`).join("");
   $("sort").innerHTML = Object.entries(opts.sorts || {}).map(([v, label]) => `<option value="${esc(v)}">${esc(label)}</option>`).join("");
   // Sectors and companies show their India openings, biggest first.
-  const counts = { sectors: opts.sectorOpenings || {}, companies: opts.companyOpenings || {} };
+  const counts = { sectors: opts.sectorOpenings || {}, companies: opts.companyOpenings || {}, companySizes: opts.companySizeOpenings || {} };
+  const isNew = new Set(opts.newCompanies || []);
   if (opts.sectors) opts.sectors.sort((a, b) => (counts.sectors[b] || 0) - (counts.sectors[a] || 0));
   document.querySelectorAll("[data-filter]").forEach((box) => {
     const key = box.dataset.filter, n = counts[key] || {};
     box.innerHTML = (opts[key] || []).map((v) =>
-      `<button type="button" class="opt ${state.filters[key].includes(v) ? "on" : ""}" data-v="${esc(v)}">${esc(pretty(v))}${n[v] ? ` <span class="cnt">${n[v].toLocaleString("en-IN")}</span>` : ""}</button>`).join("");
+      `<button type="button" class="opt ${state.filters[key].includes(v) ? "on" : ""}" data-v="${esc(v)}">${esc(pretty(v))}${n[v] ? ` <span class="cnt">${n[v].toLocaleString("en-IN")}</span>` : ""}${key === "companies" && isNew.has(v) ? `<span class="new">new</span>` : ""}</button>`).join("");
   });
   const saved = store.get("search") || {};
   $("keywords").value = saved.keywords || "";
@@ -408,6 +413,7 @@ function renderFilters(opts) {
   $("exclude").value = saved.excludeKeywords || "";
   $("titleOnly").checked = !!saved.titleOnly;
   $("salaryOnly").checked = !!saved.salaryOnly;
+  $("newOnly").checked = !!saved.newCompaniesOnly;
 }
 
 document.querySelectorAll("[data-filter]").forEach((box) => box.addEventListener("click", (e) => {
@@ -424,7 +430,7 @@ $("clearBtn").onclick = () => {
   FILTER_KEYS.forEach((k) => (state.filters[k] = []));
   document.querySelectorAll(".opt.on").forEach((b) => b.classList.remove("on"));
   $("keywords").value = ""; $("exclude").value = "";
-  $("titleOnly").checked = $("salaryOnly").checked = false;
+  $("titleOnly").checked = $("salaryOnly").checked = $("newOnly").checked = false;
 };
 
 function criteria() {
@@ -435,6 +441,7 @@ function criteria() {
     excludeKeywords: $("exclude").value.trim(),
     titleOnly: $("titleOnly").checked,
     salaryOnly: $("salaryOnly").checked,
+    newCompaniesOnly: $("newOnly").checked,
     count: Math.max(1, Math.min(50, parseInt($("count").value) || 10)),
     ...JSON.parse(JSON.stringify(state.filters)),
   };
