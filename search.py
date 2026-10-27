@@ -93,6 +93,40 @@ WORKPLACE = ["ONSITE", "HYBRID", "REMOTE"]
 POSTED_WITHIN = [1, 3, 7, 14, 30]
 # Company career sites (one employer per board) vs job platforms (many employers, marked "platform" in boards.json).
 SOURCES = ["Company career sites", "Job platforms"]
+# Tech = software/IT/data roles, read from the title; everything else (sales, finance, HR, hotel,
+# operations, mechanical/civil engineering, pharma...) counts as non-tech.
+ROLE_TYPES = ["Non-tech roles", "Tech roles"]
+TECH_TITLE_RE = re.compile(
+    r"software|developer|programmer|devops|\bsre\b|site reliability|full[- ]?stack|front[- ]?end|back[- ]?end|"
+    r"\bdata (engineer|scientist|architect|analyst)|machine learning|\bml\b|\bai\b|\bllm|deep learning|"
+    r"cloud|cyber|security (engineer|analyst|architect)|penetration|network engineer|\bqa\b|\bsdet\b|"
+    r"test(ing)? (engineer|automation|lead)|automation (engineer|tester)|java|python|\.net\b|golang|react|angular|"
+    r"node\.?js|android|\bios\b|mobile (developer|engineer)|\bui\b|\bux\b|database|\bdba\b|\bsap\b|salesforce|"
+    r"servicenow|tech(nical)? lead|engineering manager|platform engineer|infrastructure|\bit (support|analyst|manager|specialist)|"
+    r"system(s)? administrator|solutions? architect|enterprise architect|application (developer|engineer|support)|"
+    r"firmware|embedded|\bvlsi\b|asic|fpga|computer vision|\bnlp\b|\bbi (developer|engineer)|power bi|tableau|etl|"
+    r"big data|kubernetes|\baws\b|azure|\bgcp\b|sql\b|reliability engineer|network|application development|"
+    r"\btechnical\b|microsoft dynamics|\berp\b|crm developer|it operations|helpdesk|service desk",
+    re.I,
+)
+# Company size from India openings in the catalog (updated weekly by update_catalog.py).
+COMPANY_SIZES = {
+    "Large (200+ openings)": (200, None),
+    "Mid-size (30–199 openings)": (30, 199),
+    "Small (under 30 openings)": (0, 29),
+}
+NEW_COMPANY_DAYS = 30
+
+
+def company_size(board: dict) -> str:
+    n = board.get("indiaOpenings") or 0
+    return next(label for label, (low, high) in COMPANY_SIZES.items() if n >= low and (high is None or n <= high))
+
+
+def is_new_company(board: dict) -> bool:
+    added = board.get("addedOn")
+    cutoff = (datetime.now(timezone.utc) - timedelta(days=NEW_COMPANY_DAYS)).date().isoformat()
+    return bool(added) and added >= cutoff
 SORTS = {"newest": "Newest first", "openings": "Biggest employers first"}
 MAX_WORKERS = 16
 
@@ -115,6 +149,13 @@ def options(catalog: list[dict]) -> dict:
         "workplaceTypes": WORKPLACE,
         "postedWithin": POSTED_WITHIN,
         "sources": SOURCES,
+        "roleTypes": ROLE_TYPES,
+        "companySizes": list(COMPANY_SIZES),
+        "companySizeOpenings": {
+            size: sum(b.get("indiaOpenings") or 0 for b in catalog if company_size(b) == size) for size in COMPANY_SIZES
+        },
+        # Companies added to the catalog in the last month, flagged "new" in the Companies filter.
+        "newCompanies": [b["companyName"] for b in catalog if is_new_company(b)],
         "sorts": SORTS,
     }
 
@@ -200,12 +241,20 @@ def search(criteria: dict, catalog: list[dict], exclude: set[str], seen: set[str
     types = set(criteria.get("companyTypes") or [])
     companies = set(criteria.get("companies") or [])
     sources = set(criteria.get("sources") or []) & set(SOURCES)
+    sizes = set(criteria.get("companySizes") or []) & set(COMPANY_SIZES)
+    new_only = bool(criteria.get("newCompaniesOnly"))
+    # Both or neither role type selected means any role.
+    role_types = set(criteria.get("roleTypes") or []) & set(ROLE_TYPES)
+    tech_only = role_types == {"Tech roles"}
+    non_tech_only = role_types == {"Non-tech roles"}
     boards = [
         b for b in catalog
         if (not sectors or b.get("sector") in sectors)
         and (not types or b.get("companyType") in types)
         and (not companies or b["companyName"] in companies)
         and (not sources or SOURCES[bool(b.get("platform"))] in sources)
+        and (not sizes or company_size(b) in sizes)
+        and (not new_only or is_new_company(b))
     ]
 
     loc_re = _location_regex(criteria.get("locations") or [])
@@ -234,6 +283,8 @@ def search(criteria: dict, catalog: list[dict], exclude: set[str], seen: set[str
             return False
         # Remote roles must still be open to India.
         if remote_only and not (india_re.search(joined) or joined.strip().lower() in ("remote", "")):
+            return False
+        if (tech_only or non_tech_only) and bool(TECH_TITLE_RE.search(title)) != tech_only:
             return False
         if intern_only and not INTERN_RE.search(title):
             return False
