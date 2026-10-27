@@ -190,6 +190,17 @@
     width: 36px; height: 34px; border-radius: 6px; color: var(--muted); display: flex; align-items: center; justify-content: center; }
   .pw button:hover { background: var(--surface-2); color: var(--text); }
 
+  .alt-logins { display: flex; gap: 8px; flex-wrap: wrap; border-top: 1px solid var(--border); margin-top: 16px; padding-top: 14px; }
+  .alt-logins .btn { flex: 1; }
+  .bulk-card { max-width: 560px; }
+  .bulk-card textarea { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; min-height: 110px; }
+  .saved-list { border: 1px solid var(--border); border-radius: 10px; max-height: 300px; overflow-y: auto; }
+  .saved-row { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-top: 1px solid var(--border); }
+  .saved-row:first-child { border-top: 0; }
+  .saved-row .acct-email { flex: 1; min-width: 0; font-weight: 500; }
+  .saved-row .on { font-size: 12px; color: var(--ok); font-weight: 600; }
+  .menu .menu-scroll { max-height: 280px; overflow-y: auto; }
+  .menu .muted-row { color: var(--muted); font-size: 12px; margin-left: auto; }
   .crop-card { max-width: 900px; padding: 18px; }
   .crop-area { height: min(60vh, 560px); background: #111; border-radius: 10px; overflow: hidden; }
   .crop-area img { display: block; max-width: 100%; }
@@ -218,7 +229,7 @@
     .card { padding: 14px; border-radius: 10px; }
     .row { grid-template-columns: 1fr; gap: 0; }
     .brand-text { display: none; }
-    .acct-email { display: none; }
+    .acct-btn .acct-email { display: none; }
     .acct-btn { padding: 3px; }
     .editor { min-height: 180px; }
     .foot { flex-direction: column-reverse; align-items: stretch; }
@@ -366,7 +377,35 @@
       <button type="button" class="btn btn-ghost" id="loginCancel">Cancel</button>
       <button type="submit" class="btn btn-primary" id="loginSubmit">Log in</button>
     </div>
+    <div class="alt-logins">
+      <button type="button" class="btn btn-sm" id="manyBtn" title="Paste many email,password lines">👥 Add many logins</button>
+      <button type="button" class="btn btn-sm" id="csvBtn" title="Upload a CSV file with email and password columns">📄 Upload CSV file</button>
+    </div>
   </form>
+</div>
+
+<div class="modal" id="bulkModal" role="dialog" aria-modal="true" aria-labelledby="bulkTitle">
+  <div class="modal-card bulk-card">
+    <div class="card-head"><h2 id="bulkTitle">Saved logins</h2><button type="button" class="btn btn-sm btn-ghost" id="bulkClose">Close</button></div>
+    <p class="muted small" style="margin-top:-6px">Saved on this computer only (<code>.post_credentials.json</code>, not uploaded to GitHub). Pick an email to log it in automatically.</p>
+    <div class="field">
+      <label for="bulkText">Add logins: one per line, email,password</label>
+      <textarea id="bulkText" placeholder="priya@example.com,Password123&#10;rahul@example.com,Secret456" spellcheck="false" autocomplete="off"></textarea>
+    </div>
+    <div class="group" style="justify-content:space-between;margin-bottom:12px">
+      <span>
+        <label class="btn btn-sm" for="csvInput">📄 Upload CSV file</label>
+        <input type="file" id="csvInput" accept=".csv,.txt,text/csv,text/plain" hidden>
+      </span>
+      <button type="button" class="btn btn-primary btn-sm" id="bulkSave">Save logins</button>
+    </div>
+    <div class="form-error" id="bulkStatus" style="color:var(--muted)"></div>
+    <div class="group" style="justify-content:space-between;margin-bottom:6px">
+      <span class="flabel" id="savedCount">Saved</span>
+      <button type="button" class="btn btn-sm btn-ghost" id="loginAllBtn" title="Log in every saved account that isn't logged in yet">Log in all</button>
+    </div>
+    <div class="saved-list" id="savedList"></div>
+  </div>
 </div>
 
 <div class="modal" id="cropModal" role="dialog" aria-modal="true" aria-labelledby="cropTitle">
@@ -415,7 +454,7 @@ const MAX_CHARS = 10000;
 const MAX_IMAGE_EDGE = 2560;
 const EYE = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>`;
 const EYE_OFF = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 19c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
-const state = { accounts: [], account: null, type: "TEXT", media: [], editingId: null, undo: [], page: 0, last: true, posts: [], options: null };
+const state = { accounts: [], saved: [], account: null, type: "TEXT", media: [], editingId: null, undo: [], page: 0, last: true, posts: [], options: null };
 
 async function api(path, options = {}) {
   const headers = { "X-Account": state.account || "", ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }) };
@@ -457,22 +496,33 @@ const textLength = (html) => new DOMParser().parseFromString(html || "", "text/h
 const initial = (email) => esc((email || "?").trim()[0] || "?");
 
 /* ---------- accounts ---------- */
+const isIn = (email) => state.accounts.some((a) => a.toLowerCase() === email.toLowerCase());
+function setAccounts(data) {
+  state.accounts = data.accounts || []; state.saved = data.saved || [];
+}
 function renderAccounts() {
   const box = $("account");
-  if (!state.accounts.length) {
+  const savedOut = state.saved.filter((e) => !isIn(e));
+  if (!state.accounts.length && !savedOut.length) {
     box.innerHTML = `<button class="btn btn-primary btn-sm" id="loginBtn">Log in</button>`;
     $("loginBtn").onclick = () => openLogin();
   } else {
     box.innerHTML = `
-      <button class="acct-btn" id="acctBtn" aria-haspopup="true" aria-expanded="false" title="${esc(state.account)}">
-        <span class="avatar">${initial(state.account)}</span><span class="acct-email">${esc(state.account)}</span><span class="muted">▾</span>
+      <button class="acct-btn" id="acctBtn" aria-haspopup="true" aria-expanded="false" title="${esc(state.account || "Choose an account")}">
+        ${state.account ? `<span class="avatar">${initial(state.account)}</span><span class="acct-email">${esc(state.account)}</span>`
+          : `<span class="avatar" style="background:var(--muted)">?</span><span class="acct-email">Choose account</span>`}<span class="muted">▾</span>
       </button>
       <div class="menu" id="acctMenu" hidden>
-        <div class="label">Post as</div>
-        ${state.accounts.map((a) => `<button data-acct="${esc(a)}"><span class="avatar small-avatar">${initial(a)}</span><span class="acct-email">${esc(a)}</span>${a === state.account ? `<span class="check">✓</span>` : ""}</button>`).join("")}
+        <div class="menu-scroll">
+          ${state.accounts.length ? `<div class="label">Logged in · post as</div>` : ""}
+          ${state.accounts.map((a) => `<button data-acct="${esc(a)}"><span class="avatar small-avatar">${initial(a)}</span><span class="acct-email">${esc(a)}</span>${a === state.account ? `<span class="check">✓</span>` : ""}</button>`).join("")}
+          ${savedOut.length ? `<div class="label">Saved logins · click to log in</div>` : ""}
+          ${savedOut.map((a) => `<button data-saved="${esc(a)}"><span class="avatar small-avatar" style="background:var(--muted)">${initial(a)}</span><span class="acct-email">${esc(a)}</span><span class="muted-row">Log in</span></button>`).join("")}
+        </div>
         <div class="sep"></div>
-        <button data-act="add">＋ Add another account</button>
-        <button data-act="logout" class="danger">Log out of ${esc(state.account)}</button>
+        <button data-act="add">＋ Log in to another account</button>
+        <button data-act="bulk">👥 Add many logins / upload CSV</button>
+        ${state.account ? `<button data-act="logout" class="danger">Log out of ${esc(state.account)}</button>` : ""}
       </div>`;
     const menu = $("acctMenu");
     $("acctBtn").onclick = (e) => { e.stopPropagation(); menu.hidden = !menu.hidden; $("acctBtn").setAttribute("aria-expanded", String(!menu.hidden)); };
@@ -480,13 +530,15 @@ function renderAccounts() {
       const b = e.target.closest("button"); if (!b) return;
       menu.hidden = true;
       if (b.dataset.acct) { if (b.dataset.acct !== state.account) switchAccount(b.dataset.acct); }
-      else if (b.dataset.act === "add") openLogin("");
+      else if (b.dataset.saved) loginSaved(b.dataset.saved);
+      else if (b.dataset.act === "add") openLogin();
+      else if (b.dataset.act === "bulk") openBulk();
       else if (b.dataset.act === "logout") logout();
     };
   }
   $("postingAs").textContent = state.account ? `Posting as ${state.account}` : "Log in to post";
   $("publishBtn").disabled = !state.account;
-  renderPreview();
+  renderPreview(); renderSaved();
 }
 document.addEventListener("click", () => { const m = $("acctMenu"); if (m) m.hidden = true; });
 function switchAccount(email) {
@@ -494,18 +546,16 @@ function switchAccount(email) {
   renderAccounts(); cancelEdit(); loadPosts(true);
   toast(`Posting as ${email}`);
 }
-let loginEmailDefault = "";
 async function loadAccounts() {
-  const data = await api("/api/posts/accounts");
-  state.accounts = data.accounts; loginEmailDefault = data.loginEmail || "";
+  setAccounts(await api("/api/posts/accounts"));
   const saved = store.get("postAccount");
   state.account = state.accounts.includes(saved) ? saved : state.accounts[0] || null;
   renderAccounts(); loadPosts(true);
 }
-function openLogin(email) {
-  $("email").value = email ?? (state.accounts.length ? "" : loginEmailDefault);
+function openLogin(email = "") {
+  $("email").value = email;
   $("loginError").textContent = ""; $("password").value = ""; setPasswordVisible(false);
-  $("loginModal").classList.add("open"); ($("email").value ? $("password") : $("email")).focus();
+  $("loginModal").classList.add("open"); (email ? $("password") : $("email")).focus();
 }
 function setPasswordVisible(show) {
   $("password").type = show ? "text" : "password";
@@ -519,18 +569,81 @@ $("loginForm").onsubmit = async (e) => {
   e.preventDefault(); $("loginSubmit").disabled = true; $("loginError").textContent = "";
   try {
     const data = await api("/api/posts/accounts", { method: "POST", body: JSON.stringify({ email: $("email").value.trim(), password: $("password").value }) });
-    state.accounts = data.accounts; $("loginModal").classList.remove("open");
+    setAccounts(data); $("loginModal").classList.remove("open");
     switchAccount(state.accounts.find((a) => a.toLowerCase() === data.email.toLowerCase()) || data.email);
   } catch (err) { $("loginError").textContent = err.message; }
   finally { $("loginSubmit").disabled = false; }
 };
 async function logout() {
   const email = state.account;
-  const data = await api(`/api/posts/accounts/${encodeURIComponent(email)}`, { method: "DELETE" });
-  state.accounts = data.accounts; state.account = null;
+  setAccounts(await api(`/api/posts/accounts/${encodeURIComponent(email)}`, { method: "DELETE" }));
+  state.account = null;
   if (state.accounts.length) switchAccount(state.accounts[0]); else { store.set("postAccount", null); renderAccounts(); loadPosts(true); }
   toast(`Logged out of ${email}`);
 }
+
+/* ---------- saved logins (many accounts, CSV) ---------- */
+function openBulk() {
+  $("loginModal").classList.remove("open");
+  $("bulkStatus").textContent = ""; $("bulkText").value = "";
+  renderSaved(); $("bulkModal").classList.add("open");
+}
+$("manyBtn").onclick = openBulk;
+$("csvBtn").onclick = () => { openBulk(); $("csvInput").click(); };
+$("bulkClose").onclick = () => $("bulkModal").classList.remove("open");
+function renderSaved() {
+  $("savedCount").textContent = `Saved logins (${state.saved.length})`;
+  $("loginAllBtn").hidden = !state.saved.some((e) => !isIn(e));
+  $("savedList").innerHTML = state.saved.length ? state.saved.map((e) => `<div class="saved-row">
+      <span class="avatar small-avatar" style="${isIn(e) ? "" : "background:var(--muted)"}">${initial(e)}</span>
+      <span class="acct-email">${esc(e)}</span>
+      ${isIn(e) ? `<span class="on">Logged in</span><button class="btn btn-sm" data-use="${esc(e)}">Use</button>` : `<button class="btn btn-sm btn-primary" data-login="${esc(e)}">Log in</button>`}
+      <button class="btn btn-sm btn-ghost" data-forget="${esc(e)}" title="Remove from saved logins" aria-label="Remove ${esc(e)}">✕</button>
+    </div>`).join("") : `<div class="empty">No saved logins yet. Paste them above or upload a CSV file.</div>`;
+}
+function bulkStatus(msg, isErr = false) { $("bulkStatus").textContent = msg; $("bulkStatus").style.color = isErr ? "var(--err)" : "var(--ok)"; }
+async function saveLogins(body) {
+  try {
+    const data = await api("/api/posts/saved", { method: "POST", body });
+    setAccounts(data); renderAccounts(); $("bulkText").value = "";
+    bulkStatus(`Saved ${data.added} new${data.updated ? `, updated ${data.updated}` : ""}${data.skipped ? `, skipped ${data.skipped} line${data.skipped > 1 ? "s" : ""} without email and password` : ""}.`);
+  } catch (err) { bulkStatus(err.message, true); }
+}
+$("bulkSave").onclick = () => {
+  if (!$("bulkText").value.trim()) { bulkStatus("Paste email,password lines first, or upload a CSV file.", true); return; }
+  saveLogins(JSON.stringify({ text: $("bulkText").value }));
+};
+$("csvInput").onchange = (e) => {
+  const file = e.target.files[0]; e.target.value = ""; if (!file) return;
+  const fd = new FormData(); fd.append("file", file); saveLogins(fd);
+};
+async function loginSaved(email, { quiet = false } = {}) {
+  if (!quiet) toast(`Logging in ${email}…`);
+  try {
+    setAccounts(await api("/api/posts/saved/login", { method: "POST", body: JSON.stringify({ email }) }));
+    if (!quiet) switchAccount(state.accounts.find((a) => a.toLowerCase() === email.toLowerCase()) || email);
+    return true;
+  } catch (err) {
+    if (quiet) return false;
+    toast(err.message); openLogin(email); $("loginError").textContent = "Saved password didn't work. Enter it again."; return false;
+  }
+}
+$("savedList").onclick = async (e) => {
+  const login = e.target.closest("[data-login]"), use = e.target.closest("[data-use]"), forget = e.target.closest("[data-forget]");
+  if (login) { login.disabled = true; login.textContent = "Logging in…"; if (await loginSaved(login.dataset.login, { quiet: true })) { switchAccount(login.dataset.login); } else { bulkStatus(`${login.dataset.login}: login failed. Check the password.`, true); renderSaved(); } }
+  if (use) { switchAccount(use.dataset.use); $("bulkModal").classList.remove("open"); }
+  if (forget) { setAccounts(await api(`/api/posts/saved/${encodeURIComponent(forget.dataset.forget)}`, { method: "DELETE" })); renderAccounts(); }
+};
+$("loginAllBtn").onclick = async () => {
+  const todo = state.saved.filter((e) => !isIn(e)); let ok = 0; const failed = [];
+  $("loginAllBtn").disabled = true;
+  for (const email of todo) { bulkStatus(`Logging in ${email}…`); (await loginSaved(email, { quiet: true })) ? ok++ : failed.push(email); }
+  $("loginAllBtn").disabled = false;
+  if (!state.account && state.accounts.length) { state.account = state.accounts[0]; store.set("postAccount", state.account); loadPosts(true); }
+  renderAccounts();
+  bulkStatus(`Logged in ${ok} of ${todo.length}.${failed.length ? ` Failed: ${failed.join(", ")}` : ""}`, failed.length > 0);
+};
+
 function handleAuth(err) {
   if (err.status === 401) { toast(`${state.account} needs to log in again`); openLogin(state.account || ""); return true; }
   return false;
@@ -905,7 +1018,7 @@ $("moreBtn").onclick = () => loadPosts(false);
 $("refreshBtn").onclick = () => loadPosts(true);
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
-  $("loginModal").classList.remove("open"); $("lightbox").classList.remove("open");
+  $("loginModal").classList.remove("open"); $("bulkModal").classList.remove("open"); $("lightbox").classList.remove("open");
   if ($("cropModal").classList.contains("open")) closeCrop();
 });
 

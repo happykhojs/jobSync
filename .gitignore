@@ -2,6 +2,7 @@
 .env
 .session.json
 .post_accounts/
+.post_credentials.json
 edits.json
 skipped.json
 posted_jobs.json

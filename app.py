@@ -28,7 +28,7 @@ from curate import curate_jobs, new_stats, payload_to_input
 from htmlfmt import sanitize_html
 from enrich import SKILLS
 from search import options, search, suggest
-from posts import STYLES, Accounts, clean_hashtags, sanitize_post_html, write_post
+from posts import STYLES, Accounts, SavedLogins, clean_hashtags, parse_logins, sanitize_post_html, write_post
 from post_jobs import ENV_FILE, JOBS_FILE, POSTED_FILE, build_payload, improve_payload, load_env, load_json
 from workowon import AuthError, WorkowonClient, record_keys
 
@@ -41,6 +41,7 @@ load_env(ENV_FILE)
 app = Flask(__name__, static_folder="static")
 client = WorkowonClient()
 accounts = Accounts()
+saved_logins = SavedLogins()
 files_lock = threading.Lock()
 keys_lock = threading.Lock()
 # Jobs already on WorkOwon (workowon.job_keys), refreshed at most every few minutes.
@@ -396,9 +397,13 @@ def post_options():
     })
 
 
+def accounts_view(**extra):
+    return jsonify({"accounts": accounts.list(), "saved": saved_logins.emails(), **extra})
+
+
 @app.get("/api/posts/accounts")
 def post_accounts():
-    return jsonify({"accounts": accounts.list(), "loginEmail": os.environ.get("LOGIN_EMAIL", "")})
+    return accounts_view()
 
 
 @app.post("/api/posts/accounts")
@@ -411,13 +416,47 @@ def post_account_login():
         accounts.login(email, password)
     except AuthError as exc:
         return error(str(exc), 401)
-    return jsonify({"accounts": accounts.list(), "email": email})
+    return accounts_view(email=email)
 
 
 @app.delete("/api/posts/accounts/<path:email>")
 def post_account_logout(email: str):
     accounts.logout(email)
-    return jsonify({"accounts": accounts.list()})
+    return accounts_view()
+
+
+@app.post("/api/posts/saved")
+def save_logins():
+    """Save many email/password pairs, from an uploaded CSV file or pasted text."""
+    file = request.files.get("file")
+    if file:
+        text = file.read().decode("utf-8-sig", errors="replace")
+    else:
+        text = (request.get_json(force=True) or {}).get("text") or ""
+    pairs, skipped = parse_logins(text)
+    if not pairs:
+        return error("No logins found. Use one per line: email,password")
+    new, updated = saved_logins.add(pairs)
+    return accounts_view(added=new, updated=updated, skipped=skipped)
+
+
+@app.post("/api/posts/saved/login")
+def login_saved():
+    email = ((request.get_json(force=True) or {}).get("email") or "").strip()
+    password = saved_logins.password(email)
+    if not password:
+        return error("This email isn't in your saved logins.", 404)
+    try:
+        accounts.login(email, password)
+    except AuthError as exc:
+        return error(f"{email}: {exc}", 401)
+    return accounts_view(email=email)
+
+
+@app.delete("/api/posts/saved/<path:email>")
+def forget_saved(email: str):
+    saved_logins.remove(email)
+    return accounts_view()
 
 
 @app.get("/api/posts/mine")

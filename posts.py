@@ -8,10 +8,13 @@ AI is opt-in: it only runs when the user clicks a style or sends a prompt on the
 """
 from __future__ import annotations
 
+import csv
 import hashlib
+import io
 import json
 import logging
 import os
+import re
 import threading
 from pathlib import Path
 
@@ -22,6 +25,9 @@ from workowon import AuthError, WorkowonClient
 
 BASE_DIR = Path(__file__).resolve().parent
 ACCOUNTS_DIR = BASE_DIR / ".post_accounts"
+# Saved email/password pairs (uploaded CSV or pasted), so an account can be logged in with one click.
+CREDENTIALS_FILE = BASE_DIR / ".post_credentials.json"
+EMAIL_RE = re.compile(r"^[^@\s,;]+@[^@\s,;]+\.[^@\s,;]+$")
 
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
 DEFAULT_MODEL = "gemini-flash-lite-latest"
@@ -194,3 +200,64 @@ class Accounts:
         if not client:
             raise AuthError("This account is not logged in.")
         return client
+
+
+def parse_logins(text: str) -> tuple[list[tuple[str, str]], int]:
+    """Email/password pairs from CSV or pasted lines ("email,password", ";" or tab also work).
+    A header row is skipped; the password is the cell after the email. Returns (pairs, rows skipped)."""
+    text = (text or "").lstrip("\ufeff")
+    try:
+        dialect = csv.Sniffer().sniff(text[:4096], delimiters=",;\t")
+    except csv.Error:
+        dialect = csv.excel
+    pairs, skipped = [], 0
+    for row in csv.reader(io.StringIO(text), dialect):
+        cells = [c.strip() for c in row]
+        if not any(cells):
+            continue
+        at = next((i for i, c in enumerate(cells) if EMAIL_RE.match(c)), None)
+        if at is None or at + 1 >= len(cells) or not cells[at + 1]:
+            # Header rows ("email,password") and broken lines.
+            skipped += 0 if any(c.lower() in ("email", "e-mail", "username", "login") for c in cells) else 1
+            continue
+        pairs.append((cells[at], cells[at + 1]))
+    return pairs, skipped
+
+
+class SavedLogins:
+    """Email/password pairs kept in CREDENTIALS_FILE (git-ignored, readable only by you)."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+
+    def _load(self) -> dict[str, dict]:
+        try:
+            return json.loads(CREDENTIALS_FILE.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return {}
+
+    def _save(self, data: dict) -> None:
+        CREDENTIALS_FILE.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        CREDENTIALS_FILE.chmod(0o600)
+
+    def emails(self) -> list[str]:
+        return [v["email"] for v in self._load().values()]
+
+    def add(self, pairs: list[tuple[str, str]]) -> tuple[int, int]:
+        """Returns (new, updated)."""
+        with self._lock:
+            data = self._load()
+            new = sum(1 for email, _ in {e.lower(): (e, p) for e, p in pairs}.values() if email.lower() not in data)
+            for email, password in pairs:
+                data[email.lower()] = {"email": email, "password": password}
+            self._save(data)
+        return new, len({e.lower() for e, _ in pairs}) - new
+
+    def password(self, email: str) -> str | None:
+        return (self._load().get((email or "").lower()) or {}).get("password")
+
+    def remove(self, email: str) -> None:
+        with self._lock:
+            data = self._load()
+            if data.pop((email or "").lower(), None) is not None:
+                self._save(data)
