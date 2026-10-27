@@ -219,6 +219,24 @@
   .toast.show { opacity: 1; transform: translateX(-50%); }
 
   /* ---------- responsive ---------- */
+  /* ---------- "posted" celebration ---------- */
+  .celebrate { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+    background: rgba(10, 12, 16, .35); pointer-events: none; opacity: 0; transition: opacity .2s; overflow: hidden; }
+  .celebrate.show { opacity: 1; }
+  .celebrate-card { background: var(--surface); border-radius: 18px; padding: 28px 36px; text-align: center; max-width: calc(100vw - 32px);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, .25); transform: scale(.6); transition: transform .35s cubic-bezier(.2, 1.6, .4, 1); }
+  .celebrate.show .celebrate-card { transform: scale(1); }
+  .celebrate-icon { font-size: 56px; line-height: 1; display: inline-block; animation: pop 0.9s ease-in-out infinite alternate; }
+  .celebrate-card h2 { margin: 12px 0 4px; font-size: 22px; color: var(--ok); }
+  .celebrate-card p { margin: 0; color: var(--muted); overflow-wrap: anywhere; }
+  .celebrate-row { margin-top: 10px; font-size: 24px; letter-spacing: 6px; }
+  .confetti { position: absolute; top: -40px; font-size: 26px; animation: fall linear forwards; }
+  @keyframes pop { from { transform: scale(1) rotate(-8deg); } to { transform: scale(1.18) rotate(8deg); } }
+  @keyframes fall { to { transform: translateY(110vh) rotate(var(--spin)); } }
+  @media (prefers-reduced-motion: reduce) {
+    .celebrate-icon, .confetti { animation: none; } .confetti { display: none; } .celebrate-card { transition: none; }
+  }
+
   @media (max-width: 980px) {
     main { grid-template-columns: 1fr; grid-template-areas: "compose" "side" "mine"; }
     .side { position: static; }
@@ -428,6 +446,14 @@
 
 <div class="lightbox" id="lightbox"><img id="lightboxImg" alt=""></div>
 <div class="toast" id="toast" role="status"></div>
+<div class="celebrate" id="celebrate" role="status" aria-live="polite">
+  <div class="celebrate-card">
+    <div class="celebrate-icon">🎉</div>
+    <h2 id="celebrateTitle">Successfully posted!</h2>
+    <p id="celebrateText"></p>
+    <div class="celebrate-row">🥳 ✨ 🚀 👏 🎊</div>
+  </div>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 <script>
@@ -462,6 +488,44 @@ async function api(path, options = {}) {
   const body = await res.json().catch(() => ({}));
   if (!res.ok) { const e = new Error(body.error || `Request failed (${res.status})`); e.status = res.status; throw e; }
   return body;
+}
+const CELEBRATE_MS = 2600;
+const CONFETTI = ["🎉", "🎊", "✨", "🥳", "⭐", "💫", "🚀", "👏", "💙", "🔥"];
+let celebrateTimer;
+// Short cheerful chime made with Web Audio, so no sound file is needed.
+function playChime() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const notes = [523.25, 659.25, 783.99, 1046.5, 1318.5]; // C5 E5 G5 C6 E6
+    notes.forEach((freq, i) => {
+      const at = ctx.currentTime + i * 0.11;
+      const osc = ctx.createOscillator(), gain = ctx.createGain();
+      osc.type = "triangle"; osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0, at);
+      gain.gain.linearRampToValueAtTime(0.22, at + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, at + (i === notes.length - 1 ? 1.2 : 0.4));
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(at); osc.stop(at + 1.3);
+    });
+    setTimeout(() => ctx.close(), 2000);
+  } catch {}
+}
+function celebrate(title, text) {
+  const box = $("celebrate");
+  $("celebrateTitle").textContent = title; $("celebrateText").textContent = text;
+  box.querySelectorAll(".confetti").forEach((c) => c.remove());
+  for (let i = 0; i < 36; i++) {
+    const c = document.createElement("span");
+    c.className = "confetti"; c.textContent = CONFETTI[i % CONFETTI.length];
+    c.style.left = `${Math.random() * 100}%`;
+    c.style.animationDuration = `${1.4 + Math.random() * 1.1}s`;
+    c.style.animationDelay = `${Math.random() * 0.4}s`;
+    c.style.setProperty("--spin", `${Math.random() * 720 - 360}deg`);
+    box.appendChild(c);
+  }
+  box.classList.add("show"); playChime();
+  clearTimeout(celebrateTimer);
+  celebrateTimer = setTimeout(() => box.classList.remove("show"), CELEBRATE_MS);
 }
 let toastTimer;
 function toast(msg) {
@@ -875,10 +939,10 @@ $("publishBtn").onclick = async () => {
   try {
     if (state.editingId) {
       await api(`/api/posts/mine/${encodeURIComponent(state.editingId)}`, { method: "PUT", body: JSON.stringify(form) });
-      toast("Post updated"); cancelEdit();
+      celebrate("Post updated!", `Saved for ${state.account}`); cancelEdit();
     } else {
       await api("/api/posts/mine", { method: "POST", body: JSON.stringify(form) });
-      toast(`Posted as ${state.account} 🎉`); clearForm();
+      celebrate("Successfully posted!", `Posted as ${state.account}`); clearForm();
     }
     loadPosts(true);
   } catch (err) { if (!handleAuth(err)) toast(err.message); }
