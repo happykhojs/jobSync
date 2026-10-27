@@ -18,15 +18,17 @@ import time
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
+from urllib.parse import urlparse
 
 import requests
-from flask import Flask, jsonify, request, send_from_directory
+from flask import Flask, Response, jsonify, request, send_from_directory
 
 import duplicates
 from curate import curate_jobs, new_stats, payload_to_input
 from htmlfmt import sanitize_html
 from enrich import SKILLS
 from search import options, search, suggest
+from posts import STYLES, Accounts, clean_hashtags, sanitize_post_html, write_post
 from post_jobs import ENV_FILE, JOBS_FILE, POSTED_FILE, build_payload, improve_payload, load_env, load_json
 from workowon import AuthError, WorkowonClient, record_keys
 
@@ -38,6 +40,7 @@ BOARDS_FILE = BASE_DIR / "boards.json"
 load_env(ENV_FILE)
 app = Flask(__name__, static_folder="static")
 client = WorkowonClient()
+accounts = Accounts()
 files_lock = threading.Lock()
 keys_lock = threading.Lock()
 # Jobs already on WorkOwon (workowon.job_keys), refreshed at most every few minutes.
@@ -323,6 +326,181 @@ def post_jobs():
         results.append({"sourceKey": key, "ok": ok, "message": message,
                         "jobId": (body.get("data") or {}).get("jobId") if ok else None})
     return jsonify({"results": results})
+
+
+# ---------- Community posts (Post page) ----------
+POST_TYPES = ["TEXT", "ARTICLE", "QUESTION", "POLL", "LINK", "JOB_SHARE"]
+VISIBILITY = ["PUBLIC", "CONNECTIONS", "PRIVATE"]
+MEDIA_KINDS = {"image": "IMAGE", "video": "VIDEO", "document": "DOCUMENT"}
+
+
+def post_client() -> WorkowonClient:
+    # The Post page sends the account it is posting as; several can be logged in at once.
+    return accounts.client(request.headers.get("X-Account", ""))
+
+
+def post_payload(body: dict, creating: bool) -> dict:
+    """Validated create/update body for the community posts API."""
+    post_type = body.get("type") if body.get("type") in POST_TYPES else "TEXT"
+    content = sanitize_post_html(body.get("content") or "")
+    if len(content) > 10000:
+        raise ValueError("The post is too long (10,000 characters at most).")
+    payload = {
+        "title": (body.get("title") or "").strip()[:300] or None,
+        "content": content,
+        "visibility": body.get("visibility") if body.get("visibility") in VISIBILITY else "PUBLIC",
+        "hashtags": clean_hashtags(body.get("hashtags")),
+        "tags": [t.strip() for t in body.get("tags") or [] if str(t).strip()][:10],
+        "media": [
+            {k: m.get(k) for k in ("type", "url", "fileName", "mimeType", "fileSizeBytes", "width", "height") if m.get(k) is not None}
+            | {"orderIndex": i}
+            for i, m in enumerate(body.get("media") or []) if m.get("url") and m.get("type") in MEDIA_KINDS.values()
+        ],
+    }
+    if body.get("linkUrl"):
+        payload.update({k: (body.get(k) or "").strip() or None for k in ("linkUrl", "linkPreviewTitle", "linkPreviewDescription", "linkPreviewImage")})
+    if not content and not payload["media"] and not body.get("linkUrl"):
+        raise ValueError("Write something, add media or a link first.")
+    if creating:
+        payload["type"] = post_type
+        if post_type == "POLL":
+            poll = body.get("poll") or {}
+            options = [o.strip()[:60] for o in poll.get("options") or [] if str(o).strip()][:10]
+            if len(options) < 2:
+                raise ValueError("A poll needs at least 2 options.")
+            payload["poll"] = {"options": options, "endsAt": poll.get("endsAt"), "multipleChoice": bool(poll.get("multipleChoice"))}
+            if not payload["poll"]["endsAt"]:
+                raise ValueError("Pick when the poll ends.")
+        if post_type in ("LINK", "JOB_SHARE") and not body.get("linkUrl"):
+            raise ValueError("Add the link for this post.")
+    return {k: v for k, v in payload.items() if v not in (None, [])}
+
+
+def posts_error(exc: Exception):
+    if isinstance(exc, AuthError):
+        return error(str(exc), 401)
+    return error(str(exc), 400 if isinstance(exc, ValueError) else 502)
+
+
+@app.get("/posts")
+def posts_page():
+    return send_from_directory(app.static_folder, "posts.html")
+
+
+@app.get("/api/posts/options")
+def post_options():
+    return jsonify({
+        "types": POST_TYPES, "visibility": VISIBILITY,
+        "styles": [{"id": k, "label": label} for k, (label, _) in STYLES.items()],
+        "aiEnabled": bool(os.environ.get("GEMINI_API_KEY", "").strip()),
+    })
+
+
+@app.get("/api/posts/accounts")
+def post_accounts():
+    return jsonify({"accounts": accounts.list(), "loginEmail": os.environ.get("LOGIN_EMAIL", "")})
+
+
+@app.post("/api/posts/accounts")
+def post_account_login():
+    body = request.get_json(force=True)
+    email, password = (body.get("email") or "").strip(), body.get("password") or ""
+    if not email or not password:
+        return error("Email and password are required.")
+    try:
+        accounts.login(email, password)
+    except AuthError as exc:
+        return error(str(exc), 401)
+    return jsonify({"accounts": accounts.list(), "email": email})
+
+
+@app.delete("/api/posts/accounts/<path:email>")
+def post_account_logout(email: str):
+    accounts.logout(email)
+    return jsonify({"accounts": accounts.list()})
+
+
+@app.get("/api/posts/mine")
+def my_posts():
+    try:
+        page = post_client().my_posts(int(request.args.get("page") or 0), 20)
+    except Exception as exc:
+        return posts_error(exc)
+    return jsonify(page)
+
+
+@app.post("/api/posts/mine")
+def create_post():
+    try:
+        return jsonify({"post": post_client().create_post(post_payload(request.get_json(force=True), creating=True))})
+    except Exception as exc:
+        return posts_error(exc)
+
+
+@app.put("/api/posts/mine/<post_id>")
+def update_post(post_id: str):
+    try:
+        return jsonify({"post": post_client().update_post(post_id, post_payload(request.get_json(force=True), creating=False))})
+    except Exception as exc:
+        return posts_error(exc)
+
+
+@app.delete("/api/posts/mine/<post_id>")
+def delete_post(post_id: str):
+    try:
+        post_client().delete_post(post_id)
+    except Exception as exc:
+        return posts_error(exc)
+    return jsonify({"deleted": post_id})
+
+
+@app.post("/api/posts/media")
+def upload_post_media():
+    file = request.files.get("file")
+    if not file:
+        return error("No file.")
+    mime = file.mimetype or "application/octet-stream"
+    kind = "image" if mime.startswith("image/") else "video" if mime.startswith("video/") else "document"
+    data = file.read()
+    try:
+        url = post_client().upload_post_media(kind, file.filename or "upload", mime, data)
+    except Exception as exc:
+        return posts_error(exc)
+    return jsonify({"type": MEDIA_KINDS[kind], "url": url, "fileName": file.filename, "mimeType": mime, "fileSizeBytes": len(data)})
+
+
+# Post media lives in a bucket that only serves pages on workowon.com, so the Post page loads it through here.
+MEDIA_HOSTS = ("connectsphere-media-production.s3.ap-south-1.amazonaws.com",)
+MEDIA_REFERER = "https://workowon.com/"
+
+
+@app.get("/api/posts/media-proxy")
+def media_proxy():
+    url = request.args.get("url", "")
+    if urlparse(url).scheme != "https" or urlparse(url).hostname not in MEDIA_HOSTS:
+        return error("Not a WorkOwon media URL.")
+    headers = {"Referer": MEDIA_REFERER}
+    if request.headers.get("Range"):  # videos seek with range requests
+        headers["Range"] = request.headers["Range"]
+    upstream = requests.get(url, headers=headers, stream=True, timeout=30)
+    passed = {k: upstream.headers[k] for k in ("Content-Type", "Content-Length", "Content-Range", "Accept-Ranges", "ETag", "Last-Modified") if k in upstream.headers}
+    passed["Cache-Control"] = "private, max-age=86400"
+    return Response(upstream.iter_content(64 * 1024), status=upstream.status_code, headers=passed)
+
+
+@app.post("/api/posts/ai")
+def post_ai():
+    body = request.get_json(force=True) or {}
+    action = "create" if body.get("action") == "create" else "enhance"
+    prompt = (body.get("prompt") or "").strip()[:2000]
+    post = body.get("post") or {}
+    if action == "enhance" and not (post.get("content") or "").strip() and not prompt:
+        return error("Write something first, or describe the post you want.")
+    try:
+        return jsonify(write_post(action, body.get("style") or "", prompt, post))
+    except Exception as exc:
+        logging.warning("AI post failed: %s", exc)
+        return error(str(exc), 502)
 
 
 if __name__ == "__main__":

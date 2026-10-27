@@ -11,6 +11,8 @@ Find the latest jobs in India (12,000+ posted in the last 30 days) from 276 comp
 - **Review & edit** every field before posting: title, rich-text description and requirements, experience, salary, locations, skills, benefits, tags.
 - **AI on demand**: the ✨ Improve buttons rewrite jobs in the WorkOwon style with Gemini. AI is never used unless you click one; results are cached so a job is never paid for twice.
 - **Post** selected jobs to the WorkOwon admin API (login with email/password, tokens refresh automatically).
+- **✍️ Post page** (`/posts`, the *Post* button in the header): write community posts (text, article, question, poll, link, job share) with bold/italic/lists, photos (cropped to full, 1:1, 16:9 or 9:16), videos and documents, hashtags and visibility, with a live preview, and post them to your WorkOwon profile. Log in with several accounts (any WorkOwon user) and switch between them from the header; each account's posts are listed below the editor with Edit and Delete.
+- **AI for posts**: *Anti-AI* rewrites a post so it reads like a person wrote it (no AI buzzwords, dashes or robotic structure). One click rewrites it in a style (*Professional post*, *Short but real*, *Storytelling*, *Friendly & casual*, *Funny & witty*, *Thought leadership*, *Tips list*, *Motivational*, *Hiring announcement*, *Ask the community*, *Fix grammar only*), or type instructions to write a new post or change the current one. Undo brings back the previous version. Uses the same Gemini key; nothing is sent to AI unless you click.
 - **🎉 Fun Zone** (optional toggle): animals strolling, surprise weather and events, memes while searching, confetti when a job is posted. Everything is click-through and stays out of the way of posting.
 - **🚀 Super Fun** (on top of Fun Zone): anything can happen. Buttons sometimes blast, turn into birds or vanish (they come back and still do their job), giant animals take over the screen, a train crosses the middle, hunts and cavemen run along the bottom, floods rise over the jobs, synth sounds (🔊 toggle), recruiter XP, combos, achievements and secret words (`meow`, `party`, `hire`, `boom`, the Konami code).
 - **📖 Story mode** (in Super Fun): an endless show of little episodes (war, love, an election, a tsunami, sunny and rainy days, a job interview, aliens, a heist, a dragon) acted out on the grass with narration, weather and sound.
@@ -58,6 +60,8 @@ Open http://127.0.0.1:5050, log in with your WorkOwon admin account, search, rev
 | `htmlfmt.py` | HTML formatting to the site's format |
 | `workowon.py` | WorkOwon API client (login, refresh, post) |
 | `duplicates.py` | Duplicate score against jobs already live on WorkOwon |
+| `posts.py` | Post page: logged-in accounts and the AI post writer |
+| `static/posts.html` | Post page UI |
 | `boards.json` | Company catalog: career site, sector, type, India openings |
 
 Local state (`.env`, `.session.json`, `edits.json`, `posted_jobs.json`, `curated_jobs.json`, `skipped.json`, `jobs.json`) is git-ignored.

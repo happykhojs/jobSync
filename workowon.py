@@ -95,14 +95,15 @@ def _error_message(response: requests.Response) -> str:
 
 
 class WorkowonClient:
-    def __init__(self) -> None:
+    def __init__(self, session_file: Path = SESSION_FILE) -> None:
         self._lock = threading.Lock()
+        self.session_file = session_file
         self.access_token: str | None = None
         self.refresh_token: str | None = None
         self.email: str | None = None
-        if SESSION_FILE.exists():
+        if session_file.exists():
             try:
-                saved = json.loads(SESSION_FILE.read_text(encoding="utf-8"))
+                saved = json.loads(session_file.read_text(encoding="utf-8"))
                 self.access_token = saved.get("accessToken")
                 self.refresh_token = saved.get("refreshToken")
                 self.email = saved.get("email")
@@ -110,11 +111,11 @@ class WorkowonClient:
                 pass
 
     def _save(self) -> None:
-        SESSION_FILE.write_text(
+        self.session_file.write_text(
             json.dumps({"accessToken": self.access_token, "refreshToken": self.refresh_token, "email": self.email}),
             encoding="utf-8",
         )
-        SESSION_FILE.chmod(0o600)
+        self.session_file.chmod(0o600)
 
     def _store_tokens(self, body: dict) -> None:
         access = _find_key(body, ("accessToken", "access_token", "token", "jwt"))
@@ -135,7 +136,7 @@ class WorkowonClient:
     def logout(self) -> None:
         with self._lock:
             self.access_token = self.refresh_token = self.email = None
-            SESSION_FILE.unlink(missing_ok=True)
+            self.session_file.unlink(missing_ok=True)
 
     def _refresh(self) -> None:
         if not self.refresh_token:
@@ -143,7 +144,7 @@ class WorkowonClient:
         response = requests.post(f"{BASE_URL}/api/auth/refresh", json={"refreshToken": self.refresh_token}, timeout=TIMEOUT)
         if not response.ok:
             self.access_token = self.refresh_token = None
-            SESSION_FILE.unlink(missing_ok=True)
+            self.session_file.unlink(missing_ok=True)
             raise AuthError("Session expired. Please log in again.")
         self._store_tokens(response.json())
 
@@ -183,3 +184,40 @@ class WorkowonClient:
         except ValueError:
             body = {}
         return response.ok, (body.get("message") if body else None) or _error_message(response), body
+
+    def _data(self, response: requests.Response) -> Any:
+        if not response.ok:
+            raise AuthError(_error_message(response)) if response.status_code in (401, 403) else RuntimeError(_error_message(response))
+        try:
+            return response.json().get("data")
+        except ValueError:
+            return None
+
+    # Profile posts (community service "User Posts").
+    def my_posts(self, page: int = 0, size: int = 20) -> dict:
+        return self._data(self.request("GET", "/api/communities/posts/me", params={"page": page, "size": size})) or {}
+
+    def create_post(self, payload: dict) -> dict:
+        return self._data(self.request("POST", "/api/communities/posts/me", json=payload)) or {}
+
+    def update_post(self, post_id: str, payload: dict) -> dict:
+        return self._data(self.request("PUT", f"/api/communities/posts/{post_id}", json=payload)) or {}
+
+    def delete_post(self, post_id: str) -> None:
+        self._data(self.request("DELETE", f"/api/communities/posts/{post_id}"))
+
+    def upload_post_media(self, kind: str, file_name: str, content_type: str, data: bytes) -> str:
+        """Upload an image/video/document for a profile post; returns its public URL."""
+        presign = self._data(self.request(
+            "POST", f"/api/communities/uploads/user-post/{kind}/presign",
+            json={"fileName": file_name, "contentType": content_type, "fileSizeBytes": len(data)},
+        )) or {}
+        if not presign.get("uploadUrl"):
+            raise RuntimeError("Upload was not accepted.")
+        put = requests.put(
+            presign["uploadUrl"], data=data, timeout=120,
+            headers={"Content-Type": presign.get("requiredContentType") or content_type},
+        )
+        if not put.ok:
+            raise RuntimeError(f"Upload failed (HTTP {put.status_code}).")
+        return presign.get("finalPublicUrl") or presign["uploadUrl"].split("?")[0]

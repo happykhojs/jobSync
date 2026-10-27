@@ -1,6 +1,7 @@
 # secrets and local state
 .env
 .session.json
+.post_accounts/
 edits.json
 skipped.json
 posted_jobs.json

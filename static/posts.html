@@ -1,0 +1,925 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WorkOwon Posts</title>
+<link rel="icon" type="image/png" href="/static/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+<style>
+  /* Same palette as the jobs dashboard */
+  :root {
+    --bg: #eef1f4; --surface: #ffffff; --surface-2: #f6f7f8; --border: #e3e6e8; --border-strong: #c9ced3;
+    --text: #1a1a1b; --muted: #6b7075; --accent: #0079d3; --accent-hover: #0060a9; --accent-soft: #e9f5fd;
+    --orange: #ff4500; --orange-hover: #d93a00; --orange-soft: #fff1eb;
+    --ok: #2f8f46; --ok-soft: #ecf8ee; --err: #d1002a; --err-soft: #fdeaee; --radius: 12px;
+    --shadow: 0 1px 2px rgba(16, 24, 40, .05), 0 1px 3px rgba(16, 24, 40, .06);
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.5 "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  a { color: var(--accent); }
+  [hidden] { display: none !important; }
+  .wrap { max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+
+  /* ---------- header ---------- */
+  header { background: var(--surface); border-bottom: 1px solid var(--border); position: sticky; top: 0; z-index: 10; }
+  header .wrap { display: flex; align-items: center; justify-content: space-between; height: 60px; gap: 12px; }
+  .brand { font-weight: 650; font-size: 16px; display: flex; align-items: center; gap: 8px; text-decoration: none; color: var(--text); white-space: nowrap; }
+  .brand img { width: 30px; height: 30px; object-fit: contain; }
+  .brand span { color: var(--orange); }
+  .nav { display: flex; align-items: center; gap: 8px; min-width: 0; }
+  .group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  .btn { border: 1px solid var(--accent); background: var(--surface); color: var(--accent); border-radius: 999px;
+    padding: 7px 16px; cursor: pointer; font-weight: 600; white-space: nowrap; text-decoration: none;
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: background-color .15s, opacity .15s; }
+  .btn:hover { background-color: var(--accent-soft); }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+  .btn-ghost { border-color: transparent; background: transparent; color: var(--muted); padding: 7px 10px; }
+  .btn-ghost:hover { background: var(--surface-2); color: var(--text); }
+  .btn-sm { padding: 4px 12px; font-size: 13px; }
+  .btn-danger { border-color: var(--err); color: var(--err); }
+  .btn-danger:hover { background: var(--err-soft); }
+  .btn-ai { border: 0; color: #fff; background: linear-gradient(135deg, #ff4500, #ff8717); }
+  .btn-ai:hover { background: linear-gradient(135deg, #d93a00, #ff4500); }
+  .btn-human { border: 0; color: #fff; background: linear-gradient(135deg, #2f8f46, #1c6b8a); }
+  .btn-human:hover { filter: brightness(.92); }
+
+  /* account menu */
+  .acct { position: relative; }
+  .acct-btn { display: flex; align-items: center; gap: 8px; border: 1px solid var(--border-strong); background: var(--surface);
+    border-radius: 999px; padding: 3px 12px 3px 3px; cursor: pointer; max-width: 260px; }
+  .acct-btn:hover { background: var(--surface-2); }
+  .avatar { width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: #fff; display: inline-flex;
+    align-items: center; justify-content: center; font-weight: 700; flex: none; text-transform: uppercase; }
+  .acct-email { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; font-size: 13px; }
+  .menu { position: absolute; right: 0; top: calc(100% + 6px); background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; box-shadow: 0 8px 24px rgba(16, 24, 40, .14); min-width: 260px; padding: 6px; z-index: 20; }
+  .menu .label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; padding: 6px 10px 4px; }
+  .menu button { width: 100%; display: flex; align-items: center; gap: 10px; border: 0; background: none; padding: 8px 10px;
+    border-radius: 8px; cursor: pointer; text-align: left; }
+  .menu button:hover { background: var(--surface-2); }
+  .menu .sep { height: 1px; background: var(--border); margin: 6px 0; }
+  .menu .check { margin-left: auto; color: var(--accent); font-weight: 700; }
+  .menu .small-avatar { width: 24px; height: 24px; font-size: 12px; }
+  .menu .danger { color: var(--err); }
+
+  /* ---------- layout ---------- */
+  main { display: grid; grid-template-columns: minmax(0, 1fr) 380px; grid-template-areas: "compose side" "mine side";
+    gap: 16px; padding: 20px 0 48px; align-items: start; }
+  #composer { grid-area: compose; }
+  #mine { grid-area: mine; }
+  .side { grid-area: side; display: flex; flex-direction: column; gap: 16px; position: sticky; top: 76px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+  .card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 14px; }
+  h2 { font-size: 17px; margin: 0; }
+  .muted { color: var(--muted); }
+  .small { font-size: 12px; }
+
+  .tabs { display: flex; gap: 6px; margin-bottom: 16px; overflow-x: auto; scrollbar-width: none; padding-bottom: 2px; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { border: 1px solid var(--border-strong); background: var(--surface); border-radius: 999px; padding: 6px 14px;
+    cursor: pointer; font-weight: 600; font-size: 13px; white-space: nowrap; flex: none; }
+  .tab:hover { background: var(--surface-2); }
+  .tab.on { background: var(--text); border-color: var(--text); color: #fff; }
+  .tab:disabled { opacity: .45; cursor: not-allowed; }
+
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; min-width: 0; }
+  .flabel, .field > label { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .03em; }
+  input[type=text], input[type=url], input[type=email], input[type=password], select, textarea {
+    border: 1px solid var(--border-strong); border-radius: 8px; padding: 9px 12px; background: var(--surface); width: 100%; min-width: 0; }
+  input:focus, select:focus, textarea:focus { outline: 3px solid var(--accent-soft); border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 84px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .editor-box { border: 1px solid var(--border-strong); border-radius: 10px; overflow: hidden; }
+  .editor-box:focus-within { outline: 3px solid var(--accent-soft); border-color: var(--accent); }
+  .toolbar { display: flex; gap: 2px; padding: 4px; background: var(--surface-2); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .toolbar button { border: 0; background: transparent; border-radius: 6px; padding: 4px 10px; cursor: pointer; min-width: 34px; font-size: 13px; }
+  .toolbar button:hover { background: #e4e6e8; }
+  .editor { min-height: 220px; max-height: 520px; overflow-y: auto; padding: 12px 14px; outline: none; font-size: 15px; }
+  .editor:empty::before { content: attr(data-placeholder); color: var(--muted); }
+  .editor p, .rich p { margin: 0 0 8px; }
+  .editor ul, .editor ol, .rich ul, .rich ol { margin: 0 0 8px; padding-left: 22px; }
+  .editor li p, .rich li p { margin: 0; }
+  .count { text-align: right; font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .count.over { color: var(--err); font-weight: 600; }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { font-size: 12px; padding: 3px 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border); }
+  .tag { color: var(--accent); font-weight: 600; font-size: 13px; }
+  .poll-opt { display: flex; gap: 6px; margin-bottom: 6px; }
+
+  /* media in the composer */
+  .dropzone { border: 1.5px dashed var(--border-strong); border-radius: 10px; padding: 14px; display: flex; align-items: center;
+    justify-content: space-between; gap: 12px; flex-wrap: wrap; background: var(--surface-2); }
+  .dropzone.drag { border-color: var(--accent); background: var(--accent-soft); }
+  .thumbs { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; margin-top: 10px; }
+  .thumb { position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); background: #111; aspect-ratio: 1; }
+  .thumb img, .thumb video { width: 100%; height: 100%; object-fit: cover; display: block; cursor: zoom-in; }
+  .thumb .doc { color: #fff; font-size: 12px; padding: 10px; display: flex; align-items: center; justify-content: center; height: 100%; text-align: center; word-break: break-word; background: #3a3f44; }
+  .thumb .bar { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: space-between; align-items: center; gap: 4px;
+    padding: 4px 6px; background: linear-gradient(transparent, rgba(0,0,0,.7)); color: #fff; font-size: 11px; }
+  .thumb .x { position: absolute; top: 6px; right: 6px; border: 0; border-radius: 999px; width: 26px; height: 26px; background: rgba(0,0,0,.65); color: #fff; cursor: pointer; }
+  .thumb .crop { border: 0; border-radius: 999px; background: rgba(255,255,255,.9); color: var(--text); font-size: 11px; font-weight: 600; padding: 2px 8px; cursor: pointer; }
+  .thumb.loading::after { content: "Uploading…"; position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #fff; background: rgba(0,0,0,.55); font-size: 12px; font-weight: 600; }
+
+  .foot { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding-top: 4px; border-top: 1px solid var(--border); margin-top: 4px; padding-top: 16px; }
+  .editing-note { background: var(--accent-soft); border-radius: 8px; padding: 10px 12px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  /* AI */
+  .styles { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .style { border: 1px solid #ffc7b0; color: var(--orange-hover); background: var(--orange-soft); border-radius: 999px; padding: 5px 11px; cursor: pointer; font-weight: 600; font-size: 13px; }
+  .style:hover { border-color: var(--orange); }
+  .style:disabled { opacity: .5; cursor: wait; }
+  .human-box { display: flex; align-items: center; gap: 10px; background: var(--ok-soft); border-radius: 10px; padding: 10px 12px; margin-bottom: 14px; }
+  .human-box p { margin: 0; font-size: 12px; color: #285c37; flex: 1; }
+  .ai-status { font-size: 13px; color: var(--muted); min-height: 20px; margin-top: 10px; }
+  .ai-status.err { color: var(--err); }
+
+  /* post rendering (preview + my posts) */
+  .post { border: 1px solid var(--border); border-radius: 10px; padding: 14px; background: var(--surface); }
+  .post + .post { margin-top: 12px; }
+  .post-author { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .post-author .who { font-weight: 600; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .post-author .meta { font-size: 12px; color: var(--muted); }
+  .post-title { font-weight: 700; font-size: 16px; margin-bottom: 6px; }
+  .rich { overflow-wrap: anywhere; }
+  .rich.clamp { max-height: 190px; overflow: hidden; -webkit-mask-image: linear-gradient(#000 70%, transparent); mask-image: linear-gradient(#000 70%, transparent); }
+  .more-link { border: 0; background: none; color: var(--accent); font-weight: 600; cursor: pointer; padding: 0; font-size: 13px; }
+  .gallery { display: grid; gap: 4px; margin: 10px 0; border-radius: 8px; overflow: hidden; }
+  .gallery.n1 { grid-template-columns: 1fr; }
+  .gallery.n2 { grid-template-columns: 1fr 1fr; }
+  .gallery.n3, .gallery.many { grid-template-columns: 1fr 1fr; }
+  .gallery.n3 > :first-child { grid-column: 1 / -1; }
+  .gallery .g { background: #111; display: flex; align-items: center; justify-content: center; overflow: hidden; max-height: 520px; position: relative; }
+  .gallery.n1 .g img, .gallery.n1 .g video { width: 100%; height: auto; max-height: 520px; object-fit: contain; }
+  .gallery:not(.n1) .g { aspect-ratio: 1; }
+  .gallery:not(.n1) .g img, .gallery:not(.n1) .g video { width: 100%; height: 100%; object-fit: cover; }
+  .gallery img { cursor: zoom-in; display: block; }
+  .gallery .doc { color: #fff; padding: 16px; font-size: 13px; text-decoration: none; }
+  .gallery .extra { position: absolute; inset: 0; background: rgba(0,0,0,.5); color: #fff; font-size: 22px; font-weight: 700; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  .link-card { display: block; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin: 10px 0; text-decoration: none; color: var(--text); }
+  .link-card img { width: 100%; max-height: 220px; object-fit: cover; display: block; }
+  .link-card div { padding: 8px 12px; background: var(--surface-2); }
+  .link-card b { display: block; }
+  .link-card span { font-size: 12px; color: var(--muted); }
+  .poll-view .opt { border: 1px solid var(--border-strong); border-radius: 999px; padding: 6px 14px; margin-top: 6px; font-weight: 600; font-size: 13px; }
+  .stats { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 10px; flex-wrap: wrap; }
+  .post-actions { display: flex; gap: 6px; margin-left: auto; }
+  .empty { text-align: center; color: var(--muted); padding: 28px 8px; }
+  .preview-empty { color: var(--muted); font-size: 13px; text-align: center; padding: 18px 8px; border: 1px dashed var(--border-strong); border-radius: 10px; }
+
+  /* ---------- modals ---------- */
+  .modal { position: fixed; inset: 0; background: rgba(10, 12, 16, .55); display: none; align-items: center; justify-content: center; z-index: 40; padding: 16px; }
+  .modal.open { display: flex; }
+  .modal-card { background: var(--surface); border-radius: 14px; padding: 24px; width: 100%; max-width: 400px; max-height: calc(100vh - 32px); overflow: auto; }
+  .modal-card h2 { margin: 0 0 4px; font-size: 19px; }
+  .form-error { color: var(--err); font-size: 13px; min-height: 18px; margin-bottom: 8px; }
+  .pw { position: relative; }
+  .pw input { padding-right: 44px; }
+  .pw button { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); border: 0; background: none; cursor: pointer;
+    width: 36px; height: 34px; border-radius: 6px; color: var(--muted); display: flex; align-items: center; justify-content: center; }
+  .pw button:hover { background: var(--surface-2); color: var(--text); }
+
+  .crop-card { max-width: 900px; padding: 18px; }
+  .crop-area { height: min(60vh, 560px); background: #111; border-radius: 10px; overflow: hidden; }
+  .crop-area img { display: block; max-width: 100%; }
+  .ratios { display: flex; gap: 6px; flex-wrap: wrap; margin: 12px 0; }
+  .ratio { border: 1px solid var(--border-strong); background: var(--surface); border-radius: 999px; padding: 5px 12px; cursor: pointer; font-weight: 600; font-size: 13px; display: inline-flex; align-items: center; gap: 6px; }
+  .ratio.on { background: var(--text); color: #fff; border-color: var(--text); }
+  .ratio i { display: inline-block; border: 1.5px solid currentColor; border-radius: 2px; }
+  .crop-foot { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+  .lightbox { position: fixed; inset: 0; background: rgba(0,0,0,.88); display: none; align-items: center; justify-content: center; z-index: 50; padding: 16px; cursor: zoom-out; }
+  .lightbox.open { display: flex; }
+  .lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; border-radius: 6px; }
+
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%) translateY(30px); opacity: 0; background: #1a1a1b; color: #fff;
+    padding: 10px 16px; border-radius: 10px; transition: .2s; z-index: 60; max-width: calc(100% - 32px); pointer-events: none; }
+  .toast.show { opacity: 1; transform: translateX(-50%); }
+
+  /* ---------- responsive ---------- */
+  @media (max-width: 980px) {
+    main { grid-template-columns: 1fr; grid-template-areas: "compose" "side" "mine"; }
+    .side { position: static; }
+  }
+  @media (max-width: 600px) {
+    .wrap { padding: 0 12px; }
+    main { padding-top: 12px; gap: 12px; }
+    .card { padding: 14px; border-radius: 10px; }
+    .row { grid-template-columns: 1fr; gap: 0; }
+    .brand-text { display: none; }
+    .acct-email { display: none; }
+    .acct-btn { padding: 3px; }
+    .editor { min-height: 180px; }
+    .foot { flex-direction: column-reverse; align-items: stretch; }
+    .foot .group { justify-content: stretch; }
+    .foot .group .btn { flex: 1; }
+    .thumbs { grid-template-columns: repeat(3, 1fr); }
+    .modal { padding: 0; align-items: flex-end; }
+    .modal-card { border-radius: 14px 14px 0 0; max-height: 92vh; }
+    .crop-area { height: 52vh; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <a class="brand" href="/posts"><img src="/static/logo.png" alt=""><span class="brand-text" style="color:var(--text)">WorkOwon</span> <span>Posts</span></a>
+    <div class="nav">
+      <a class="btn btn-ghost btn-sm" href="/">← Jobs</a>
+      <div class="acct" id="account"></div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="card" id="composer">
+    <div class="editing-note" id="editingNote" hidden>
+      <span>Editing a post you already published. Type and poll can't be changed.</span>
+      <button class="btn btn-sm btn-ghost" id="cancelEdit">Cancel edit</button>
+    </div>
+    <div class="card-head"><h2 id="composerTitle">Create a post</h2><span class="muted small" id="postingAs"></span></div>
+    <div class="tabs" id="types" role="tablist"></div>
+
+    <div class="field" id="titleField" hidden>
+      <label for="title">Headline</label>
+      <input type="text" id="title" maxlength="300" placeholder="A clear headline for your article">
+    </div>
+
+    <div class="field">
+      <div class="editor-box">
+        <div class="toolbar" role="toolbar" aria-label="Formatting">
+          <button type="button" data-cmd="bold" title="Bold"><b>B</b></button>
+          <button type="button" data-cmd="italic" title="Italic"><i>I</i></button>
+          <button type="button" data-cmd="insertUnorderedList" title="Bullet list">• List</button>
+          <button type="button" data-cmd="insertOrderedList" title="Numbered list">1. List</button>
+          <button type="button" data-cmd="removeFormat" title="Clear formatting">Clear format</button>
+        </div>
+        <div class="editor rich" id="content" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="What do you want to talk about?"></div>
+      </div>
+      <div class="count" id="count"></div>
+    </div>
+
+    <div id="pollBox" hidden>
+      <div class="field">
+        <label>Poll options</label>
+        <div id="pollOptions"></div>
+        <div><button type="button" class="btn btn-sm btn-ghost" id="addOption">+ Add option</button></div>
+      </div>
+      <div class="row">
+        <div class="field"><label for="pollEnds">Poll ends in</label>
+          <select id="pollEnds"><option value="1">1 day</option><option value="3">3 days</option><option value="7" selected>1 week</option><option value="14">2 weeks</option></select></div>
+        <div class="field"><label>&nbsp;</label><label style="display:flex;gap:8px;align-items:center;font-size:14px"><input type="checkbox" id="pollMulti"> Allow multiple answers</label></div>
+      </div>
+    </div>
+
+    <div id="linkBox" hidden>
+      <div class="field"><label for="linkUrl" id="linkLabel">Link</label><input type="url" id="linkUrl" placeholder="https://"></div>
+      <div class="row">
+        <div class="field"><label for="linkPreviewTitle">Preview title (optional)</label><input type="text" id="linkPreviewTitle"></div>
+        <div class="field"><label for="linkPreviewImage">Preview image URL (optional)</label><input type="url" id="linkPreviewImage" placeholder="https://"></div>
+      </div>
+      <div class="field"><label for="linkPreviewDescription">Preview description (optional)</label><input type="text" id="linkPreviewDescription"></div>
+    </div>
+
+    <div class="field">
+      <label>Photos, videos &amp; documents</label>
+      <div class="dropzone" id="dropzone">
+        <span class="muted small">Drag files here, or add them. Images open in a cropper: full, 1:1, 16:9 or 9:16.</span>
+        <label class="btn btn-sm" for="fileInput">+ Add media</label>
+        <input type="file" id="fileInput" multiple accept="image/*,video/*,.pdf,.doc,.docx" hidden>
+      </div>
+      <div class="thumbs" id="media"></div>
+    </div>
+
+    <div class="row">
+      <div class="field"><label for="hashtags">Hashtags</label><input type="text" id="hashtags" placeholder="careergrowth, hiring, python"></div>
+      <div class="field"><label for="visibility">Who can see it</label><select id="visibility"></select></div>
+    </div>
+
+    <div class="foot">
+      <button type="button" class="btn btn-ghost" id="clearBtn">Clear</button>
+      <div class="group">
+        <button type="button" class="btn btn-primary" id="publishBtn">Post</button>
+      </div>
+    </div>
+  </section>
+
+  <div class="side">
+    <section class="card ai">
+      <div class="card-head"><h2>✨ Write with AI</h2></div>
+      <div class="human-box">
+        <p><b>Anti-AI</b>: rewrites the post so it reads like a real person wrote it. No AI buzzwords, dashes or robotic structure.</p>
+        <button type="button" class="btn btn-sm btn-human" id="humanBtn">Anti-AI</button>
+      </div>
+      <div class="flabel" style="margin-bottom:8px">Rewrite in a style</div>
+      <div class="styles" id="styles"></div>
+      <div class="field" style="margin-bottom:10px">
+        <label for="prompt">Your instructions</label>
+        <textarea id="prompt" rows="3" placeholder="e.g. A post about my first week as a data analyst at a startup. Or: make it shorter and end with a question."></textarea>
+      </div>
+      <div class="group">
+        <button type="button" class="btn btn-ai" id="createBtn" title="Write a brand-new post from your instructions">Write new post</button>
+        <button type="button" class="btn" id="editAiBtn" title="Change the post in the editor using your instructions">Edit my post</button>
+        <button type="button" class="btn btn-sm btn-ghost" id="undoBtn" hidden>↶ Undo</button>
+      </div>
+      <div class="ai-status" id="aiStatus" aria-live="polite"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head"><h2>Preview</h2><span class="muted small">How it will look</span></div>
+      <div id="preview"></div>
+    </section>
+  </div>
+
+  <section class="card" id="mine">
+    <div class="card-head"><h2>My posts</h2><button class="btn btn-sm btn-ghost" id="refreshBtn">↻ Refresh</button></div>
+    <div id="posts"><div class="empty">Log in to see your posts.</div></div>
+    <div style="text-align:center;margin-top:12px"><button class="btn btn-sm" id="moreBtn" hidden>Load more</button></div>
+  </section>
+</main>
+
+<div class="modal" id="loginModal" role="dialog" aria-modal="true" aria-labelledby="loginTitle">
+  <form class="modal-card" id="loginForm">
+    <img src="/static/logo.png" alt="" style="width:44px;height:44px;margin-bottom:8px">
+    <h2 id="loginTitle">Log in to WorkOwon</h2>
+    <p class="muted" style="margin-top:4px">Any WorkOwon account. Add several and switch between them from the top right.</p>
+    <div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="username" required></div>
+    <div class="field"><label for="password">Password</label>
+      <div class="pw">
+        <input id="password" type="password" autocomplete="current-password" required>
+        <button type="button" id="pwToggle" aria-label="Show password" title="Show password"></button>
+      </div>
+    </div>
+    <div class="form-error" id="loginError"></div>
+    <div class="group" style="justify-content:flex-end">
+      <button type="button" class="btn btn-ghost" id="loginCancel">Cancel</button>
+      <button type="submit" class="btn btn-primary" id="loginSubmit">Log in</button>
+    </div>
+  </form>
+</div>
+
+<div class="modal" id="cropModal" role="dialog" aria-modal="true" aria-labelledby="cropTitle">
+  <div class="modal-card crop-card">
+    <div class="card-head"><h2 id="cropTitle">Crop image</h2><span class="muted small" id="cropInfo"></span></div>
+    <div class="crop-area"><img id="cropImg" alt=""></div>
+    <div class="ratios" id="ratios"></div>
+    <div class="crop-foot">
+      <div class="group">
+        <button type="button" class="btn btn-sm btn-ghost" id="rotateBtn" title="Rotate 90°">⟳ Rotate</button>
+        <button type="button" class="btn btn-sm btn-ghost" id="resetCrop">Reset</button>
+      </div>
+      <div class="group">
+        <button type="button" class="btn btn-ghost" id="cropCancel">Skip image</button>
+        <button type="button" class="btn btn-primary" id="cropDone">Use image</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="lightbox" id="lightbox"><img id="lightboxImg" alt=""></div>
+<div class="toast" id="toast" role="status"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+const TYPE_LABEL = { TEXT: "Post", ARTICLE: "Article", QUESTION: "Question", POLL: "Poll", LINK: "Link", JOB_SHARE: "Job share" };
+const VIS_LABEL = { PUBLIC: "🌐 Anyone", CONNECTIONS: "👥 Connections only", PRIVATE: "🔒 Only me" };
+const PLACEHOLDER = {
+  TEXT: "What do you want to talk about?", ARTICLE: "Write your article…", QUESTION: "Ask the community a question…",
+  POLL: "Ask your poll question…", LINK: "Say something about this link…", JOB_SHARE: "Tell people about this job…",
+};
+const RATIOS = [
+  { id: "full", label: "Full image", ratio: null, icon: [14, 11] },
+  { id: "1:1", label: "1:1", ratio: 1, icon: [12, 12] },
+  { id: "16:9", label: "16:9", ratio: 16 / 9, icon: [16, 9] },
+  { id: "9:16", label: "9:16", ratio: 9 / 16, icon: [9, 16] },
+  { id: "free", label: "Free", ratio: NaN, icon: [14, 10] },
+];
+const MAX_CHARS = 10000;
+const MAX_IMAGE_EDGE = 2560;
+const EYE = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>`;
+const EYE_OFF = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 19c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
+const state = { accounts: [], account: null, type: "TEXT", media: [], editingId: null, undo: [], page: 0, last: true, posts: [], options: null };
+
+async function api(path, options = {}) {
+  const headers = { "X-Account": state.account || "", ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }) };
+  const res = await fetch(path, { ...options, headers });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) { const e = new Error(body.error || `Request failed (${res.status})`); e.status = res.status; throw e; }
+  return body;
+}
+let toastTimer;
+function toast(msg) {
+  const t = $("toast"); t.textContent = msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 3500);
+}
+function timeAgo(iso) {
+  if (!iso) return "";
+  const mins = Math.round((Date.now() - new Date(iso)) / 60000);
+  if (mins < 60) return mins < 1 ? "just now" : `${mins} min ago`;
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return `${hrs} hr ago`;
+  const days = Math.round(hrs / 24);
+  return days < 30 ? `${days} day${days > 1 ? "s" : ""} ago` : new Date(iso).toLocaleDateString("en-IN");
+}
+// WorkOwon's media bucket only serves workowon.com pages, so its files load through our proxy.
+const mediaSrc = (url) => /^https:\/\/[^/]*amazonaws\.com\//.test(url || "") ? `/api/posts/media-proxy?url=${encodeURIComponent(url)}` : url || "";
+// Posts come back as HTML: keep only the formatting tags, drop everything else (scripts, attributes).
+const ALLOWED = new Set(["P", "STRONG", "EM", "B", "I", "UL", "OL", "LI", "BR"]);
+function safeHtml(html) {
+  const doc = new DOMParser().parseFromString(`<div>${html || ""}</div>`, "text/html");
+  const walk = (node) => {
+    [...node.children].forEach((el) => {
+      walk(el);
+      if (!ALLOWED.has(el.tagName)) el.replaceWith(...el.childNodes);
+      else [...el.attributes].forEach((a) => el.removeAttribute(a.name));
+    });
+  };
+  const root = doc.body.firstChild; walk(root); return root.innerHTML;
+}
+const textLength = (html) => new DOMParser().parseFromString(html || "", "text/html").body.textContent.trim().length;
+const initial = (email) => esc((email || "?").trim()[0] || "?");
+
+/* ---------- accounts ---------- */
+function renderAccounts() {
+  const box = $("account");
+  if (!state.accounts.length) {
+    box.innerHTML = `<button class="btn btn-primary btn-sm" id="loginBtn">Log in</button>`;
+    $("loginBtn").onclick = () => openLogin();
+  } else {
+    box.innerHTML = `
+      <button class="acct-btn" id="acctBtn" aria-haspopup="true" aria-expanded="false" title="${esc(state.account)}">
+        <span class="avatar">${initial(state.account)}</span><span class="acct-email">${esc(state.account)}</span><span class="muted">▾</span>
+      </button>
+      <div class="menu" id="acctMenu" hidden>
+        <div class="label">Post as</div>
+        ${state.accounts.map((a) => `<button data-acct="${esc(a)}"><span class="avatar small-avatar">${initial(a)}</span><span class="acct-email">${esc(a)}</span>${a === state.account ? `<span class="check">✓</span>` : ""}</button>`).join("")}
+        <div class="sep"></div>
+        <button data-act="add">＋ Add another account</button>
+        <button data-act="logout" class="danger">Log out of ${esc(state.account)}</button>
+      </div>`;
+    const menu = $("acctMenu");
+    $("acctBtn").onclick = (e) => { e.stopPropagation(); menu.hidden = !menu.hidden; $("acctBtn").setAttribute("aria-expanded", String(!menu.hidden)); };
+    menu.onclick = (e) => {
+      const b = e.target.closest("button"); if (!b) return;
+      menu.hidden = true;
+      if (b.dataset.acct) { if (b.dataset.acct !== state.account) switchAccount(b.dataset.acct); }
+      else if (b.dataset.act === "add") openLogin("");
+      else if (b.dataset.act === "logout") logout();
+    };
+  }
+  $("postingAs").textContent = state.account ? `Posting as ${state.account}` : "Log in to post";
+  $("publishBtn").disabled = !state.account;
+  renderPreview();
+}
+document.addEventListener("click", () => { const m = $("acctMenu"); if (m) m.hidden = true; });
+function switchAccount(email) {
+  state.account = email; store.set("postAccount", email);
+  renderAccounts(); cancelEdit(); loadPosts(true);
+  toast(`Posting as ${email}`);
+}
+let loginEmailDefault = "";
+async function loadAccounts() {
+  const data = await api("/api/posts/accounts");
+  state.accounts = data.accounts; loginEmailDefault = data.loginEmail || "";
+  const saved = store.get("postAccount");
+  state.account = state.accounts.includes(saved) ? saved : state.accounts[0] || null;
+  renderAccounts(); loadPosts(true);
+}
+function openLogin(email) {
+  $("email").value = email ?? (state.accounts.length ? "" : loginEmailDefault);
+  $("loginError").textContent = ""; $("password").value = ""; setPasswordVisible(false);
+  $("loginModal").classList.add("open"); ($("email").value ? $("password") : $("email")).focus();
+}
+function setPasswordVisible(show) {
+  $("password").type = show ? "text" : "password";
+  $("pwToggle").innerHTML = show ? EYE_OFF : EYE;
+  $("pwToggle").setAttribute("aria-label", show ? "Hide password" : "Show password");
+  $("pwToggle").title = show ? "Hide password" : "Show password";
+}
+$("pwToggle").onclick = () => { setPasswordVisible($("password").type === "password"); $("password").focus(); };
+$("loginCancel").onclick = () => $("loginModal").classList.remove("open");
+$("loginForm").onsubmit = async (e) => {
+  e.preventDefault(); $("loginSubmit").disabled = true; $("loginError").textContent = "";
+  try {
+    const data = await api("/api/posts/accounts", { method: "POST", body: JSON.stringify({ email: $("email").value.trim(), password: $("password").value }) });
+    state.accounts = data.accounts; $("loginModal").classList.remove("open");
+    switchAccount(state.accounts.find((a) => a.toLowerCase() === data.email.toLowerCase()) || data.email);
+  } catch (err) { $("loginError").textContent = err.message; }
+  finally { $("loginSubmit").disabled = false; }
+};
+async function logout() {
+  const email = state.account;
+  const data = await api(`/api/posts/accounts/${encodeURIComponent(email)}`, { method: "DELETE" });
+  state.accounts = data.accounts; state.account = null;
+  if (state.accounts.length) switchAccount(state.accounts[0]); else { store.set("postAccount", null); renderAccounts(); loadPosts(true); }
+  toast(`Logged out of ${email}`);
+}
+function handleAuth(err) {
+  if (err.status === 401) { toast(`${state.account} needs to log in again`); openLogin(state.account || ""); return true; }
+  return false;
+}
+
+/* ---------- composer ---------- */
+function renderTypes() {
+  $("types").innerHTML = state.options.types.map((t) =>
+    `<button type="button" role="tab" aria-selected="${t === state.type}" class="tab ${t === state.type ? "on" : ""}" data-t="${t}" ${state.editingId ? "disabled" : ""}>${TYPE_LABEL[t] || t}</button>`).join("");
+  $("titleField").hidden = state.type !== "ARTICLE";
+  $("pollBox").hidden = state.type !== "POLL" || !!state.editingId;
+  $("linkBox").hidden = !["LINK", "JOB_SHARE"].includes(state.type) && !$("linkUrl").value;
+  $("linkLabel").textContent = state.type === "JOB_SHARE" ? "Job link" : "Link";
+  $("content").dataset.placeholder = PLACEHOLDER[state.type] || PLACEHOLDER.TEXT;
+}
+$("types").onclick = (e) => {
+  const b = e.target.closest(".tab"); if (!b || b.disabled) return;
+  state.type = b.dataset.t;
+  if (state.type === "POLL" && !pollOptions().length) setPollOptions(["", ""]);
+  renderTypes(); changed();
+};
+document.querySelector(".toolbar").onclick = (e) => {
+  const b = e.target.closest("button[data-cmd]"); if (!b) return;
+  $("content").focus(); document.execCommand(b.dataset.cmd, false, null); changed();
+};
+// Paste as plain text, so styles from other sites don't come along.
+$("content").addEventListener("paste", (e) => {
+  e.preventDefault();
+  document.execCommand("insertText", false, (e.clipboardData || window.clipboardData).getData("text/plain"));
+});
+function contentHtml() {
+  return safeHtml($("content").innerHTML).replace(/<b>/g, "<strong>").replace(/<\/b>/g, "</strong>").replace(/<i>/g, "<em>").replace(/<\/i>/g, "</em>");
+}
+function updateCount() {
+  const n = textLength($("content").innerHTML);
+  $("count").textContent = `${n.toLocaleString("en-IN")} / ${MAX_CHARS.toLocaleString("en-IN")}`;
+  $("count").classList.toggle("over", n > MAX_CHARS);
+}
+// Any edit: refresh the counter and preview, and keep the draft.
+let previewTimer;
+function changed() {
+  updateCount(); saveDraft();
+  clearTimeout(previewTimer); previewTimer = setTimeout(renderPreview, 120);
+}
+$("content").addEventListener("input", changed);
+
+function pollOptions() { return [...document.querySelectorAll("#pollOptions input")].map((i) => i.value); }
+function setPollOptions(opts) {
+  $("pollOptions").innerHTML = opts.map((o, i) => `<div class="poll-opt"><input type="text" maxlength="60" value="${esc(o)}" placeholder="Option ${i + 1}">
+    <button type="button" class="btn btn-sm btn-ghost" data-rm="${i}" title="Remove option" aria-label="Remove option ${i + 1}">✕</button></div>`).join("");
+}
+$("addOption").onclick = () => { const o = pollOptions(); if (o.length < 10) { setPollOptions([...o, ""]); changed(); } };
+$("pollOptions").onclick = (e) => { const b = e.target.closest("[data-rm]"); if (!b) return; const o = pollOptions(); o.splice(+b.dataset.rm, 1); setPollOptions(o); changed(); };
+$("pollOptions").oninput = changed;
+
+function hashtags() { return $("hashtags").value.split(/[\s,]+/).map((t) => t.replace(/^#/, "").trim()).filter(Boolean); }
+
+/* ---------- media: upload, crop, preview ---------- */
+let mediaSeq = 0;
+function renderMedia() {
+  $("media").innerHTML = state.media.map((m) => `<div class="thumb ${m.uploading ? "loading" : ""}" data-id="${m.id}">
+    ${m.type === "IMAGE" ? `<img src="${esc(m.localUrl || mediaSrc(m.url))}" alt="" data-zoom="${esc(m.localUrl || mediaSrc(m.url))}">`
+      : m.type === "VIDEO" ? `<video src="${esc(m.localUrl || mediaSrc(m.url))}" muted playsinline></video>`
+      : `<div class="doc">📄 ${esc(m.fileName || "Document")}</div>`}
+    <button type="button" class="x" data-rm="${m.id}" title="Remove" aria-label="Remove">✕</button>
+    ${m.type === "IMAGE" ? `<div class="bar"><span>${m.width && m.height ? `${m.width}×${m.height}` : ""}</span>${m.file && !m.uploading ? `<button type="button" class="crop" data-recrop="${m.id}">Crop</button>` : ""}</div>` : ""}
+  </div>`).join("");
+}
+$("media").onclick = (e) => {
+  const rm = e.target.closest("[data-rm]"), recrop = e.target.closest("[data-recrop]"), zoom = e.target.closest("[data-zoom]");
+  if (rm) { state.media = state.media.filter((m) => m.id !== +rm.dataset.rm); renderMedia(); changed(); }
+  else if (recrop) { const m = state.media.find((x) => x.id === +recrop.dataset.recrop); if (m) cropAndUpload(m.file, m); }
+  else if (zoom) openLightbox(zoom.dataset.zoom);
+};
+function imageSize(blob) {
+  return new Promise((resolve) => {
+    const img = new Image(); const url = URL.createObjectURL(blob);
+    img.onload = () => { resolve({ width: img.naturalWidth, height: img.naturalHeight }); URL.revokeObjectURL(url); };
+    img.onerror = () => { resolve({}); URL.revokeObjectURL(url); }; img.src = url;
+  });
+}
+// Uploads one file; `item` is the media entry it fills (already shown with a local preview).
+async function upload(item, blob, fileName) {
+  item.uploading = true; renderMedia(); renderPreview();
+  try {
+    const fd = new FormData(); fd.append("file", blob, fileName);
+    const out = await api("/api/posts/media", { method: "POST", body: fd });
+    Object.assign(item, out, { uploading: false });
+  } catch (err) {
+    state.media = state.media.filter((m) => m !== item);
+    if (!handleAuth(err)) toast(`${fileName}: ${err.message}`);
+  }
+  renderMedia(); changed();
+}
+async function addFiles(files) {
+  if (!state.account) { openLogin(); return; }
+  for (const file of files) {
+    if (file.type.startsWith("image/") && !/gif|svg/.test(file.type)) { await cropAndUpload(file); continue; }
+    const type = file.type.startsWith("image/") ? "IMAGE" : file.type.startsWith("video/") ? "VIDEO" : "DOCUMENT";
+    const item = { id: ++mediaSeq, type, fileName: file.name, localUrl: type !== "DOCUMENT" ? URL.createObjectURL(file) : "", ...(type === "IMAGE" ? await imageSize(file) : {}) };
+    state.media.push(item); upload(item, file, file.name);
+  }
+}
+$("fileInput").onchange = async (e) => { const files = [...e.target.files]; e.target.value = ""; await addFiles(files); };
+const dz = $("dropzone");
+["dragenter", "dragover"].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.add("drag"); }));
+["dragleave", "drop"].forEach((ev) => dz.addEventListener(ev, (e) => { e.preventDefault(); dz.classList.remove("drag"); }));
+dz.addEventListener("drop", (e) => addFiles([...e.dataTransfer.files]));
+
+// Cropper: resolves after the image is added (or skipped), so several images are cropped one by one.
+let cropper = null, cropResolve = null, cropFile = null, cropTarget = null, cropRatio = "full";
+function renderRatios() {
+  $("ratios").innerHTML = RATIOS.map((r) => `<button type="button" class="ratio ${r.id === cropRatio ? "on" : ""}" data-r="${r.id}">
+    <i style="width:${r.icon[0]}px;height:${r.icon[1]}px"></i>${r.label}</button>`).join("");
+}
+function applyRatio() {
+  const r = RATIOS.find((x) => x.id === cropRatio);
+  cropper.setAspectRatio(r.ratio === null ? NaN : r.ratio);
+  if (r.id === "full") {
+    // Full image: crop box covers the whole picture.
+    const img = cropper.getImageData();
+    cropper.setCropBoxData({ left: img.left, top: img.top, width: img.width, height: img.height });
+  }
+  $("cropInfo").textContent = r.id === "full" ? "The whole image, no crop" : r.id === "free" ? "Drag the corners to crop" : `Crop to ${r.label}`;
+}
+$("ratios").onclick = (e) => { const b = e.target.closest(".ratio"); if (!b) return; cropRatio = b.dataset.r; renderRatios(); applyRatio(); };
+$("rotateBtn").onclick = () => { cropper.rotate(90); applyRatio(); };
+$("resetCrop").onclick = () => { cropper.reset(); applyRatio(); };
+function cropAndUpload(file, existing = null) {
+  return new Promise((resolve) => {
+    cropResolve = resolve; cropFile = file; cropTarget = existing; cropRatio = existing?.ratio || "full";
+    const url = URL.createObjectURL(file);
+    $("cropImg").src = url; $("cropTitle").textContent = `Crop ${file.name}`;
+    $("cropCancel").textContent = existing ? "Cancel" : "Skip image";
+    $("cropModal").classList.add("open"); renderRatios();
+    if (cropper) cropper.destroy();
+    cropper = new Cropper($("cropImg"), { viewMode: 1, autoCropArea: 1, background: false, responsive: true, ready: applyRatio });
+  });
+}
+function closeCrop() {
+  $("cropModal").classList.remove("open");
+  if (cropper) { cropper.destroy(); cropper = null; }
+  URL.revokeObjectURL($("cropImg").src);
+  const done = cropResolve; cropResolve = null; if (done) done();
+}
+$("cropCancel").onclick = closeCrop;
+$("cropDone").onclick = async () => {
+  const file = cropFile, ratio = cropRatio, target = cropTarget;
+  let blob = file, name = file.name;
+  const data = cropper.getData(true), img = cropper.getImageData();
+  const untouched = ratio === "full" && !data.rotate && data.x <= 1 && data.y <= 1 && data.width >= img.naturalWidth - 2 && data.height >= img.naturalHeight - 2;
+  const huge = Math.max(img.naturalWidth, img.naturalHeight) > MAX_IMAGE_EDGE;
+  if (!untouched || huge) {
+    const canvas = cropper.getCroppedCanvas({ maxWidth: MAX_IMAGE_EDGE, maxHeight: MAX_IMAGE_EDGE, imageSmoothingQuality: "high" });
+    const type = file.type === "image/png" ? "image/png" : "image/jpeg";
+    blob = await new Promise((r) => canvas.toBlob(r, type, 0.92));
+    name = file.name.replace(/\.[^.]+$/, "") + (type === "image/png" ? ".png" : ".jpg");
+  }
+  closeCrop();
+  const item = target || { id: ++mediaSeq, type: "IMAGE" };
+  Object.assign(item, { file, ratio, fileName: name, localUrl: URL.createObjectURL(blob), ...(await imageSize(blob)) });
+  if (!target) state.media.push(item);
+  upload(item, blob, name);
+};
+
+function openLightbox(src) { $("lightboxImg").src = src; $("lightbox").classList.add("open"); }
+$("lightbox").onclick = () => $("lightbox").classList.remove("open");
+
+/* ---------- form state ---------- */
+function readForm() {
+  const days = parseInt($("pollEnds").value) || 7;
+  return {
+    type: state.type, title: $("title").value.trim(), content: contentHtml(),
+    visibility: $("visibility").value, hashtags: hashtags(),
+    media: state.media.filter((m) => m.url && !m.uploading).map(({ type, url, fileName, mimeType, fileSizeBytes, width, height }) => ({ type, url, fileName, mimeType, fileSizeBytes, width, height })),
+    linkUrl: $("linkUrl").value.trim(), linkPreviewTitle: $("linkPreviewTitle").value.trim(),
+    linkPreviewDescription: $("linkPreviewDescription").value.trim(), linkPreviewImage: $("linkPreviewImage").value.trim(),
+    poll: { options: pollOptions().map((o) => o.trim()).filter(Boolean), multipleChoice: $("pollMulti").checked,
+      endsAt: new Date(Date.now() + days * 86400000).toISOString() },
+    pollDays: days,
+  };
+}
+const optionText = (o) => (typeof o === "string" ? o : o?.text || o?.label || o?.option || "");
+function fillForm(p, keepMedia = false) {
+  state.type = p.type || "TEXT";
+  $("title").value = p.title || "";
+  $("content").innerHTML = safeHtml(p.content || "");
+  $("visibility").value = p.visibility || "PUBLIC";
+  $("hashtags").value = (p.hashtags || []).join(", ");
+  ["linkUrl", "linkPreviewTitle", "linkPreviewDescription", "linkPreviewImage"].forEach((k) => ($(k).value = p[k] || ""));
+  setPollOptions(p.poll?.options?.length ? p.poll.options.map(optionText) : state.type === "POLL" ? ["", ""] : []);
+  $("pollMulti").checked = !!p.poll?.multipleChoice;
+  if (p.pollDays) $("pollEnds").value = String(p.pollDays);
+  if (!keepMedia) state.media = (p.media || []).map((m) => ({ id: ++mediaSeq, ...m }));
+  renderTypes(); renderMedia(); updateCount(); renderPreview();
+}
+// Unsent drafts survive a reload (new posts only, not edits).
+function saveDraft() { if (!state.editingId) store.set("postDraft", readForm()); }
+["title", "hashtags", "visibility", "linkUrl", "linkPreviewTitle", "linkPreviewDescription", "linkPreviewImage", "pollEnds", "pollMulti"]
+  .forEach((id) => $(id).addEventListener("input", changed));
+
+function clearForm() {
+  fillForm({ type: "TEXT", visibility: "PUBLIC" });
+  state.undo = []; $("undoBtn").hidden = true; $("aiStatus").textContent = "";
+  saveDraft();
+}
+$("clearBtn").onclick = () => { if (state.editingId) cancelEdit(); else clearForm(); };
+
+function startEdit(post) {
+  state.editingId = post.postId;
+  fillForm(post);
+  $("editingNote").hidden = false; $("composerTitle").textContent = "Edit post"; $("publishBtn").textContent = "Save changes";
+  renderTypes(); $("composer").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function cancelEdit() {
+  if (!state.editingId) return;
+  state.editingId = null;
+  $("editingNote").hidden = true; $("composerTitle").textContent = "Create a post"; $("publishBtn").textContent = "Post";
+  fillForm(store.get("postDraft") || { type: "TEXT", visibility: "PUBLIC" });
+}
+$("cancelEdit").onclick = cancelEdit;
+
+$("publishBtn").onclick = async () => {
+  if (!state.account) { openLogin(); return; }
+  if (state.media.some((m) => m.uploading)) { toast("Wait for the uploads to finish."); return; }
+  const form = readForm();
+  if (textLength(form.content) > MAX_CHARS) { toast("The post is too long."); return; }
+  $("publishBtn").disabled = true;
+  try {
+    if (state.editingId) {
+      await api(`/api/posts/mine/${encodeURIComponent(state.editingId)}`, { method: "PUT", body: JSON.stringify(form) });
+      toast("Post updated"); cancelEdit();
+    } else {
+      await api("/api/posts/mine", { method: "POST", body: JSON.stringify(form) });
+      toast(`Posted as ${state.account} 🎉`); clearForm();
+    }
+    loadPosts(true);
+  } catch (err) { if (!handleAuth(err)) toast(err.message); }
+  finally { $("publishBtn").disabled = !state.account; }
+};
+
+/* ---------- post rendering (preview + my posts) ---------- */
+function galleryHtml(media) {
+  const items = (media || []).filter((m) => m.url || m.localUrl);
+  if (!items.length) return "";
+  const shown = items.slice(0, 4), extra = items.length - shown.length;
+  const cls = items.length === 1 ? "n1" : items.length === 2 ? "n2" : items.length === 3 ? "n3" : "many";
+  return `<div class="gallery ${cls}">${shown.map((m, i) => {
+    const src = m.localUrl || mediaSrc(m.url);
+    const inner = m.type === "IMAGE" ? `<img src="${esc(src)}" alt="" loading="lazy" data-zoom="${esc(src)}">`
+      : m.type === "VIDEO" ? `<video src="${esc(src)}" controls playsinline preload="metadata" ${m.thumbnailUrl ? `poster="${esc(mediaSrc(m.thumbnailUrl))}"` : ""}></video>`
+      : `<a class="doc" href="${esc(src)}" target="_blank" rel="noopener">📄 ${esc(m.fileName || "Document")}</a>`;
+    return `<div class="g">${inner}${i === shown.length - 1 && extra > 0 ? `<span class="extra">+${extra}</span>` : ""}</div>`;
+  }).join("")}</div>`;
+}
+function postHtml(p, { preview = false, index = -1 } = {}) {
+  const who = preview ? state.account || "You" : state.account;
+  const meta = preview ? `just now · ${VIS_LABEL[p.visibility] || ""}`
+    : `${esc(TYPE_LABEL[p.type] || p.type)} · ${esc(VIS_LABEL[p.visibility] || p.visibility || "")} · ${timeAgo(p.createdAt)}${p.editedAt ? " · edited" : ""}${p.status && p.status !== "ACTIVE" ? ` · <b>${esc(p.status)}</b>` : ""}`;
+  const options = (p.poll?.options || []).map(optionText).filter(Boolean);
+  const body = safeHtml(p.content);
+  return `<article class="post">
+    <div class="post-author">
+      <span class="avatar">${initial(who)}</span>
+      <div style="min-width:0"><div class="who">${esc(who)}</div><div class="meta">${meta}</div></div>
+      ${preview ? "" : `<div class="post-actions"><button class="btn btn-sm" data-edit="${index}">Edit</button><button class="btn btn-sm btn-danger" data-del="${index}">Delete</button></div>`}
+    </div>
+    ${p.title ? `<div class="post-title">${esc(p.title)}</div>` : ""}
+    ${body ? `<div class="rich ${preview ? "" : "clamp"}">${body}</div>${preview ? "" : `<button class="more-link" data-more>See more</button>`}` : ""}
+    ${options.length ? `<div class="poll-view">${options.map((o) => `<div class="opt">${esc(o)}</div>`).join("")}</div>` : ""}
+    ${p.linkUrl ? `<a class="link-card" href="${esc(p.linkUrl)}" target="_blank" rel="noopener">${p.linkPreviewImage ? `<img src="${esc(mediaSrc(p.linkPreviewImage))}" alt="">` : ""}
+      <div><b>${esc(p.linkPreviewTitle || p.linkUrl)}</b>${p.linkPreviewDescription ? `<span>${esc(p.linkPreviewDescription)}</span>` : `<span>${esc(p.linkUrl)}</span>`}</div></a>` : ""}
+    ${galleryHtml(p.media)}
+    ${(p.hashtags || []).length ? `<div class="chips">${p.hashtags.map((h) => `<span class="tag">#${esc(h)}</span>`).join(" ")}</div>` : ""}
+    ${preview ? "" : `<div class="stats"><span>👍 ${p.reactionCount || 0}</span><span>💬 ${p.commentCount || 0}</span><span>👁 ${p.viewCount || 0}</span><span>🔁 ${p.repostCount || 0}</span></div>`}
+  </article>`;
+}
+function renderPreview() {
+  if (!state.options) return;
+  const f = readForm();
+  const p = { ...f, media: state.media, poll: state.type === "POLL" ? f.poll : null };
+  const empty = !textLength(f.content) && !f.title && !state.media.length && !f.linkUrl;
+  $("preview").innerHTML = empty ? `<div class="preview-empty">Start writing and your post shows up here.</div>` : postHtml(p, { preview: true });
+}
+$("preview").onclick = (e) => { const z = e.target.closest("[data-zoom]"); if (z) openLightbox(z.dataset.zoom); };
+
+/* ---------- AI ---------- */
+function setAiBusy(busy, text = "") {
+  document.querySelectorAll(".style, #createBtn, #editAiBtn, #humanBtn").forEach((b) => (b.disabled = busy));
+  $("aiStatus").classList.remove("err"); $("aiStatus").textContent = text;
+}
+async function runAi(action, style) {
+  if (!state.options.aiEnabled) { $("aiStatus").classList.add("err"); $("aiStatus").textContent = "Add GEMINI_API_KEY to .env to use AI."; return; }
+  const form = readForm(), prompt = $("prompt").value.trim();
+  if (action === "enhance" && !textLength(form.content) && !prompt) { toast("Write something first, or describe the post you want."); return; }
+  if (action === "create" && !prompt) { toast("Describe the post you want in the instructions box."); $("prompt").focus(); return; }
+  const label = state.options.styles.find((s) => s.id === style)?.label;
+  setAiBusy(true, action === "create" ? "Writing your post…" : `${label ? `${label}: ` : ""}improving your post…`);
+  try {
+    const out = await api("/api/posts/ai", { method: "POST", body: JSON.stringify({ action, style, prompt, post: { ...form, pollOptions: form.poll.options } }) });
+    state.undo.push(readForm()); $("undoBtn").hidden = false;
+    fillForm({ ...form, title: out.title || form.title, content: out.content, hashtags: out.hashtags.length ? out.hashtags : form.hashtags,
+      poll: { ...form.poll, options: out.pollOptions.length ? out.pollOptions : form.poll.options } }, true);
+    saveDraft();
+    setAiBusy(false, `Done${label ? ` · ${label}` : ""}. Check the preview, then post. Not happy? Try another style or undo.`);
+  } catch (err) {
+    setAiBusy(false); $("aiStatus").classList.add("err"); $("aiStatus").textContent = err.message;
+  }
+}
+function renderStyles() {
+  $("styles").innerHTML = state.options.styles.filter((s) => s.id !== "human")
+    .map((s) => `<button type="button" class="style" data-s="${s.id}">${esc(s.label)}</button>`).join("");
+}
+let selectedStyle = "";
+// A style rewrites the post; with an empty editor and instructions typed, it writes a new post in that style.
+$("styles").onclick = (e) => {
+  const b = e.target.closest(".style"); if (!b) return;
+  selectedStyle = b.dataset.s;
+  runAi(!textLength($("content").innerHTML) && $("prompt").value.trim() ? "create" : "enhance", selectedStyle);
+};
+$("humanBtn").onclick = () => runAi(!textLength($("content").innerHTML) && $("prompt").value.trim() ? "create" : "enhance", "human");
+$("createBtn").onclick = () => runAi("create", selectedStyle);
+$("editAiBtn").onclick = () => runAi("enhance", "");
+$("undoBtn").onclick = () => {
+  const prev = state.undo.pop(); if (prev) { fillForm(prev, true); saveDraft(); }
+  $("undoBtn").hidden = !state.undo.length; $("aiStatus").textContent = "Undone.";
+};
+
+/* ---------- my posts ---------- */
+async function loadPosts(reset) {
+  if (reset) { state.page = 0; state.posts = []; }
+  if (!state.account) { $("posts").innerHTML = `<div class="empty">Log in to see your posts.</div>`; $("moreBtn").hidden = true; return; }
+  if (reset) $("posts").innerHTML = `<div class="empty">Loading…</div>`;
+  const account = state.account;
+  try {
+    const page = await api(`/api/posts/mine?page=${state.page}`);
+    if (account !== state.account) return;
+    state.posts.push(...(page.content || [])); state.last = page.last !== false; state.page += 1;
+    renderPosts();
+  } catch (err) {
+    if (!handleAuth(err)) $("posts").innerHTML = `<div class="empty">Couldn't load posts: ${esc(err.message)}</div>`;
+  }
+}
+function renderPosts() {
+  $("moreBtn").hidden = state.last;
+  if (!state.posts.length) { $("posts").innerHTML = `<div class="empty">No posts yet. Write your first one above.</div>`; return; }
+  $("posts").innerHTML = state.posts.map((p, i) => postHtml(p, { index: i })).join("");
+  // Only offer "See more" where the text is actually cut off.
+  $("posts").querySelectorAll(".rich.clamp").forEach((el) => {
+    const more = el.nextElementSibling;
+    if (more?.dataset.more !== undefined && el.scrollHeight <= el.clientHeight + 4) { el.classList.remove("clamp"); more.remove(); }
+  });
+}
+$("posts").onclick = async (e) => {
+  const edit = e.target.closest("[data-edit]"), del = e.target.closest("[data-del]"), more = e.target.closest("[data-more]"), zoom = e.target.closest("[data-zoom]");
+  if (zoom) { openLightbox(zoom.dataset.zoom); return; }
+  if (more) { more.previousElementSibling.classList.remove("clamp"); more.remove(); return; }
+  if (edit) startEdit(state.posts[+edit.dataset.edit]);
+  if (del) {
+    // Two clicks to delete, no browser dialog.
+    if (del.dataset.armed !== "1") { del.dataset.armed = "1"; del.textContent = "Sure? Delete"; setTimeout(() => { del.dataset.armed = ""; del.textContent = "Delete"; }, 4000); return; }
+    const post = state.posts[+del.dataset.del]; del.disabled = true;
+    try {
+      await api(`/api/posts/mine/${encodeURIComponent(post.postId)}`, { method: "DELETE" });
+      state.posts = state.posts.filter((p) => p.postId !== post.postId);
+      if (state.editingId === post.postId) cancelEdit();
+      renderPosts(); toast("Post deleted");
+    } catch (err) { del.disabled = false; if (!handleAuth(err)) toast(err.message); }
+  }
+};
+$("moreBtn").onclick = () => loadPosts(false);
+$("refreshBtn").onclick = () => loadPosts(true);
+document.addEventListener("keydown", (e) => {
+  if (e.key !== "Escape") return;
+  $("loginModal").classList.remove("open"); $("lightbox").classList.remove("open");
+  if ($("cropModal").classList.contains("open")) closeCrop();
+});
+
+/* ---------- init ---------- */
+(async () => {
+  setPasswordVisible(false);
+  try { state.options = await api("/api/posts/options"); }
+  catch (err) { toast("Couldn't load the page: " + err.message); return; }
+  $("visibility").innerHTML = state.options.visibility.map((v) => `<option value="${v}">${VIS_LABEL[v] || v}</option>`).join("");
+  renderStyles();
+  if (!state.options.aiEnabled) $("aiStatus").textContent = "AI is off: add GEMINI_API_KEY to .env.";
+  fillForm(store.get("postDraft") || { type: "TEXT", visibility: "PUBLIC" });
+  try { await loadAccounts(); } catch (err) { toast("Couldn't load accounts: " + err.message); }
+})();
+</script>
+</body>
+</html>
