@@ -530,17 +530,51 @@ async function runSearch(c) {
   const terms = c.keywords.split(/[,;]/).map((t) => t.trim()).filter(Boolean);
   if (terms.length) store.set("recentKeywords", [...new Set([...terms, ...(store.get("recentKeywords") || [])])].slice(0, 8));
   $("searchBtn").disabled = true;
-  if (window.Fun?.enabled()) Fun.mountMemes($("list"));
-  else $("list").innerHTML = `<div class="empty"><span class="spinner"></span>&nbsp; Searching company career sites… the first search can take up to 30 seconds.</div>`;
+  const run = state.searchRun = (state.searchRun || 0) + 1;
+  const funMode = window.Fun?.enabled();
+  if (funMode) Fun.mountMemes($("list"));
+  else $("list").innerHTML = `<div class="empty"><span class="spinner"></span>&nbsp; <span id="searchProgress">Searching company career sites… this can take a minute or two.</span></div>`;
+  const statsBefore = $("stats").textContent;
   try {
-    const data = await api("/api/search", { method: "POST", body: JSON.stringify(c) });
+    const data = await searchInBackground(c, run, (done, total) => {
+      // total = companies + 1 final step that loads the chosen jobs' details.
+      const msg = !total ? "Starting the search…"
+        : done >= total - 1 ? "Loading job details…"
+        : `Searching company career sites… ${done} of ${total - 1} checked`;
+      if ($("searchProgress")) $("searchProgress").textContent = msg;
+      else if (funMode) $("stats").textContent = msg;
+    });
+    if (!data) return; // a newer search replaced this one
     state.jobs = data.jobs; state.selected.clear(); state.status = {};
     $("stats").textContent = `${data.matched.toLocaleString("en-IN")}+ matching jobs across ${data.companiesSearched} companies · showing ${data.jobs.length} · ${data.postedCount} posted so far`;
     if (data.errors.length) toast(`${data.errors.length} company site(s) didn't respond and were skipped`);
     renderList();
   } catch (err) {
-    $("list").innerHTML = `<div class="empty">Search failed: ${esc(err.message)}</div>`;
-  } finally { $("searchBtn").disabled = false; }
+    if (run !== state.searchRun) return;
+    $("stats").textContent = statsBefore;
+    $("list").innerHTML = `<div class="empty">${esc(/^Search failed/.test(err.message) ? err.message : "Search failed: " + err.message)}</div>`;
+  } finally { if (run === state.searchRun) $("searchBtn").disabled = false; }
+}
+
+// The server searches in the background (a search can outlast the hosting proxy's request limit);
+// start it, then check on it until it's done. A few failed checks in a row (network blips) are tolerated.
+async function searchInBackground(c, run, onProgress) {
+  const { searchId } = await api("/api/search", { method: "POST", body: JSON.stringify(c) });
+  let failures = 0;
+  onProgress(0, 0);
+  for (;;) {
+    await new Promise((r) => setTimeout(r, 1500));
+    if (run !== state.searchRun) return null;
+    let s;
+    try { s = await api(`/api/search/${searchId}`); failures = 0; }
+    catch (err) {
+      if (err.status === 404 || err.status === 410 || ++failures >= 6) throw err;
+      continue;
+    }
+    if (s.status === "done") return s.result;
+    if (s.status === "failed") throw new Error(s.error || "Search failed");
+    onProgress(s.done, s.total);
+  }
 }
 
 /* ---------- duplicates ---------- */

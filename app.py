@@ -16,6 +16,7 @@ import random
 import re
 import time
 import threading
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlparse
@@ -198,24 +199,106 @@ def get_suggestions():
     return jsonify({"suggestions": suggest(request.args.get("q", ""), catalog(), load_json(JOBS_FILE, []), SKILLS)})
 
 
+# A search asks every company site and can take minutes, longer than a hosting proxy (Render) keeps a
+# request open, so it runs in the background: POST /api/search starts it, GET /api/search/<id> reports
+# progress and the result. State is kept in files so any server worker process can answer the poll.
+SEARCH_DIR = BASE_DIR / ".searches"
+SEARCH_ID_RE = re.compile(r"^[0-9a-f]{32}$")
+SEARCH_KEEP_SECONDS = 30 * 60
+# No progress for this long means the worker running it was restarted.
+SEARCH_STALL_SECONDS = 3 * 60
+
+
+def _search_file(search_id: str) -> Path:
+    return SEARCH_DIR / f"{search_id}.json"
+
+
+def _write_search(search_id: str, state: dict) -> None:
+    SEARCH_DIR.mkdir(exist_ok=True)
+    tmp = _search_file(search_id).with_suffix(f".{threading.get_ident()}.tmp")
+    tmp.write_text(json.dumps(state, ensure_ascii=False), encoding="utf-8")
+    os.replace(tmp, _search_file(search_id))
+
+
+def _clean_old_searches() -> None:
+    for path in SEARCH_DIR.glob("*"):
+        try:
+            if time.time() - path.stat().st_mtime > SEARCH_KEEP_SECONDS:
+                path.unlink()
+        except OSError:
+            pass
+
+
+def _run_search(search_id: str, criteria: dict) -> None:
+    started = time.time()
+    current = {"done": 0, "total": 0, "written": 0.0}
+    finished = threading.Event()
+    write_lock = threading.Lock()
+
+    def write_running() -> None:
+        with write_lock:
+            if not finished.is_set():
+                current["written"] = time.time()
+                _write_search(search_id, {"status": "running", "startedAt": started, "updatedAt": time.time(),
+                                          "done": current["done"], "total": current["total"]})
+
+    def progress(done: int, total: int) -> None:
+        current.update(done=done, total=total)
+        if time.time() - current["written"] >= 1:
+            write_running()
+
+    def heartbeat() -> None:
+        # A slow company site can go minutes without progress; keep showing the search is alive.
+        while not finished.wait(15):
+            write_running()
+
+    threading.Thread(target=heartbeat, daemon=True).start()
+    try:
+        exclude = set(load_json(POSTED_FILE, {})) | set(load_json(SKIPPED_FILE, {}))
+        result = search(criteria, catalog(), exclude, workowon_keys(), progress)
+        records = result["records"]
+        # Keep found jobs in jobs.json too, so the command-line poster can use them.
+        with files_lock:
+            stored = {j["sourceKey"]: j for j in load_json(JOBS_FILE, []) if isinstance(j, dict)}
+            stored.update({r["sourceKey"]: r for r in records})
+            save_json(JOBS_FILE, sorted(stored.values(), key=lambda j: j.get("sourceUpdatedAt") or "", reverse=True))
+        state = {"status": "done", "result": {
+            "jobs": to_view(records),
+            "matched": result["matched"],
+            "companiesSearched": result["companiesSearched"],
+            "errors": result["errors"],
+            "postedCount": len(load_json(POSTED_FILE, {})),
+        }}
+    except Exception as exc:
+        logging.exception("Search failed")
+        state = {"status": "failed", "error": f"Search failed: {exc}"}
+    with write_lock:
+        finished.set()
+        _write_search(search_id, state)
+
+
 @app.post("/api/search")
 def run_search():
     criteria = request.get_json(force=True) or {}
-    exclude = set(load_json(POSTED_FILE, {})) | set(load_json(SKIPPED_FILE, {}))
-    result = search(criteria, catalog(), exclude, workowon_keys())
-    records = result["records"]
-    # Keep found jobs in jobs.json too, so the command-line poster can use them.
-    with files_lock:
-        stored = {j["sourceKey"]: j for j in load_json(JOBS_FILE, []) if isinstance(j, dict)}
-        stored.update({r["sourceKey"]: r for r in records})
-        save_json(JOBS_FILE, sorted(stored.values(), key=lambda j: j.get("sourceUpdatedAt") or "", reverse=True))
-    return jsonify({
-        "jobs": to_view(records),
-        "matched": result["matched"],
-        "companiesSearched": result["companiesSearched"],
-        "errors": result["errors"],
-        "postedCount": len(load_json(POSTED_FILE, {})),
-    })
+    SEARCH_DIR.mkdir(exist_ok=True)
+    _clean_old_searches()
+    search_id = uuid.uuid4().hex
+    _write_search(search_id, {"status": "running", "startedAt": time.time(), "updatedAt": time.time(), "done": 0, "total": 0})
+    threading.Thread(target=_run_search, args=(search_id, criteria), daemon=True).start()
+    return jsonify({"searchId": search_id}), 202
+
+
+@app.get("/api/search/<search_id>")
+def search_status(search_id: str):
+    if not SEARCH_ID_RE.match(search_id):
+        return error("Unknown search.", 404)
+    try:
+        state = json.loads(_search_file(search_id).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return error("This search has expired or the server restarted. Please search again.", 404)
+    if state["status"] == "running" and time.time() - state.get("updatedAt", 0) > SEARCH_STALL_SECONDS:
+        return error("The search stopped (the server restarted). Please search again.", 410)
+    return jsonify(state)
 
 
 @app.put("/api/jobs/<key>")

@@ -912,6 +912,16 @@
       "indiaOpenings": 60
     },
     {
+      "provider": "greenhouse",
+      "board": "anaplan",
+      "companyName": "Anaplan",
+      "website": "https://www.anaplan.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-03",
+      "indiaOpenings": 57
+    },
+    {
       "provider": "workday",
       "board": "flextronics/wd1/Careers",
       "companyName": "Flex",
@@ -1048,6 +1058,17 @@
       "companyType": "Multinational (MNC)",
       "country": "in",
       "indiaOpenings": 50
+    },
+    {
+      "provider": "workday",
+      "board": "verizon/wd12/verizon-careers",
+      "companyName": "Verizon",
+      "website": "https://www.verizon.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-03",
+      "country": "in",
+      "indiaOpenings": 49
     },
     {
       "provider": "workday",
@@ -1360,6 +1381,16 @@
       "country": "in",
       "indiaOpenings": 36,
       "addedOn": "2026-10-27"
+    },
+    {
+      "provider": "greenhouse",
+      "board": "zetaglobal",
+      "companyName": "Zeta Global",
+      "website": "https://zetaglobal.com",
+      "sector": "Media & Advertising",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-03",
+      "indiaOpenings": 36
     },
     {
       "provider": "workday",
@@ -1861,6 +1892,16 @@
     },
     {
       "provider": "greenhouse",
+      "board": "sentinellabs",
+      "companyName": "SentinelOne",
+      "website": "https://www.sentinelone.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-03",
+      "indiaOpenings": 19
+    },
+    {
+      "provider": "greenhouse",
       "board": "appian",
       "companyName": "Appian",
       "website": "https://appian.com",
@@ -1969,6 +2010,16 @@
       "addedOn": "2026-10-27"
     },
     {
+      "provider": "greenhouse",
+      "board": "tripactions",
+      "companyName": "Navan",
+      "website": "https://navan.com",
+      "sector": "Travel & Hospitality",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-03",
+      "indiaOpenings": 16
+    },
+    {
       "provider": "workday",
       "board": "paypal/wd1/jobs",
       "companyName": "PayPal",
@@ -2064,6 +2115,17 @@
       "website": "https://www.fidelity.com",
       "sector": "Banking & Financial Services",
       "companyType": "Multinational (MNC)",
+      "country": "in",
+      "indiaOpenings": 13
+    },
+    {
+      "provider": "workday",
+      "board": "ringcentral/wd1/RingCentral_Careers",
+      "companyName": "RingCentral",
+      "website": "https://www.ringcentral.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-03",
       "country": "in",
       "indiaOpenings": 13
     },
@@ -2398,6 +2460,17 @@
       "addedOn": "2026-10-27"
     },
     {
+      "provider": "workday",
+      "board": "att/wd1/ATTGeneral",
+      "companyName": "AT&T",
+      "website": "https://www.att.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-03",
+      "country": "in",
+      "indiaOpenings": 8
+    },
+    {
       "provider": "smartrecruiters",
       "board": "ixigo",
       "companyName": "ixigo",
@@ -2567,6 +2640,16 @@
       "website": "https://atlan.com",
       "sector": "IT & Software",
       "companyType": "Indian Startup",
+      "indiaOpenings": 5
+    },
+    {
+      "provider": "greenhouse",
+      "board": "simpplr",
+      "companyName": "Simpplr",
+      "website": "https://www.simpplr.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-03",
       "indiaOpenings": 5
     },
     {
@@ -2777,6 +2860,16 @@
       "companyType": "Multinational (MNC)",
       "country": "in",
       "indiaOpenings": 1
+    },
+    {
+      "provider": "greenhouse",
+      "board": "cloudflare",
+      "companyName": "Cloudflare",
+      "website": "https://www.cloudflare.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-03",
+      "indiaOpenings": 0
     }
   ]
 }

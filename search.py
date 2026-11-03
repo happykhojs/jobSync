@@ -8,9 +8,9 @@ from __future__ import annotations
 
 import logging
 import re
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
-from typing import Any
+from typing import Any, Callable
 
 import job_scraper
 from enrich import logo_from_website
@@ -233,9 +233,14 @@ def _keyword_regex(keywords: str) -> re.Pattern | None:
     return re.compile("|".join(rf"(?<!\w){re.escape(t)}(?!\w)" for t in terms), re.I)
 
 
-def search(criteria: dict, catalog: list[dict], exclude: set[str], seen: set[str] | None = None) -> dict:
-    """exclude: sourceKeys already posted/skipped here; seen: workowon.job_keys of jobs already on WorkOwon."""
+def search(
+    criteria: dict, catalog: list[dict], exclude: set[str], seen: set[str] | None = None,
+    progress: Callable[[int, int], None] | None = None,
+) -> dict:
+    """exclude: sourceKeys already posted/skipped here; seen: workowon.job_keys of jobs already on WorkOwon.
+    progress(done, total) is called as company sites answer, so the dashboard can show how far along it is."""
     seen = seen or set()
+    progress = progress or (lambda done, total: None)
     count = max(1, min(int(criteria.get("count") or 10), 50))
     sectors = set(criteria.get("sectors") or [])
     types = set(criteria.get("companyTypes") or [])
@@ -317,8 +322,14 @@ def search(criteria: dict, catalog: list[dict], exclude: set[str], seen: set[str
 
     errors: list[str] = []
     # Phase 1: listings only (cheap, cached) -> how many matches each company has.
+    # Phase 2 (details for the chosen jobs) counts as the last few steps of the progress bar.
+    total = len(boards) + 1
+    counted = []
     with ThreadPoolExecutor(MAX_WORKERS) as pool:
-        counted = list(pool.map(lambda b: safely(lambda x: call(x, count_only=True, limit=target), b), boards))
+        futures = [pool.submit(safely, lambda x: call(x, count_only=True, limit=target), b) for b in boards]
+        for future in as_completed(futures):  # count each company as soon as it answers
+            counted.append(future.result())
+            progress(len(counted), total)
     available = {}
     for board, posted, err in counted:
         if err:
@@ -371,6 +382,7 @@ def search(criteria: dict, catalog: list[dict], exclude: set[str], seen: set[str
                 # Searched location first, so it becomes the primary location.
                 rec["locations"].sort(key=lambda l: not loc_re.search(l.get("raw") or ""))
                 found.append(rec)
+    progress(total, total)
 
     def passes(rec: dict) -> bool:
         # Listings like "3 Locations" are only resolved after details load.
