@@ -27,6 +27,7 @@ from flask import Flask, Response, jsonify, request, send_from_directory
 import duplicates
 from curate import curate_jobs, new_stats, payload_to_input
 from htmlfmt import sanitize_html
+from job_scraper import release_memory
 from enrich import SKILLS
 from search import options, search, suggest
 from posts import STYLES, Accounts, SavedLogins, clean_hashtags, parse_logins, sanitize_post_html, write_post
@@ -272,6 +273,7 @@ def _run_search(search_id: str, criteria: dict) -> None:
     except Exception as exc:
         logging.exception("Search failed")
         state = {"status": "failed", "error": f"Search failed: {exc}"}
+    release_memory()
     with write_lock:
         finished.set()
         _write_search(search_id, state)

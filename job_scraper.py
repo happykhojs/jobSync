@@ -16,11 +16,15 @@ Run:
 """
 from __future__ import annotations
 
+import ctypes
+import gc
 import hashlib
 import html
 import json
 import logging
 import re
+import ssl
+import threading
 import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -51,7 +55,25 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s %(levelname)s %(message)s",
 )
+try:
+    # glibc gives each busy thread its own malloc arena; with 16 search threads that alone can add
+    # hundreds of MB on a small Linux server (Render). Two arenas keep memory flat. No-op off Linux.
+    ctypes.CDLL("libc.so.6").mallopt(-8, 2)  # M_ARENA_MAX
+except (OSError, AttributeError):
+    pass
+
+
+class _SharedTLSAdapter(requests.adapters.HTTPAdapter):
+    """One TLS context for every site: by default each of the ~280 hosts loads its own copy of the CA bundle."""
+    _context = ssl.create_default_context(cafile=requests.certs.where())
+
+    def init_poolmanager(self, *args: Any, **kwargs: Any) -> None:
+        kwargs["ssl_context"] = self._context
+        super().init_poolmanager(*args, **kwargs)
+
+
 session = requests.Session()
+session.mount("https://", _SharedTLSAdapter(pool_maxsize=16))
 session.headers.update({"User-Agent": USER_AGENT, "Accept": "application/json"})
 
 
@@ -78,11 +100,26 @@ def get_json(url: str, params: dict | None = None, trim: Callable[[Any], Any] | 
     hit = _CACHE.get(key)
     if hit and time.time() - hit[0] < CACHE_SECONDS:
         return hit[1]
-    data = _send("GET", url, params=params).json()
     if trim:
-        data = trim(data)
+        # Whole boards are big (up to ~15 MB, several times that once parsed): only a few at a time.
+        with _BIG_DOWNLOADS:
+            data = trim(_send("GET", url, params=params).json())
+    else:
+        data = _send("GET", url, params=params).json()
     _CACHE[key] = (time.time(), data)
     return data
+
+
+_BIG_DOWNLOADS = threading.BoundedSemaphore(3)
+
+
+def release_memory() -> None:
+    """Hand memory freed after a search back to the OS (glibc keeps it otherwise); no-op off Linux."""
+    gc.collect()
+    try:
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+    except (OSError, AttributeError):
+        pass
 
 
 # Any location the dashboard can search for: Indian cities (search.LOCATIONS), India itself and remote.
