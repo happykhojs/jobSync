@@ -70,15 +70,56 @@ def _send(method: str, url: str, **kwargs: Any) -> requests.Response:
     return response
 
 
-def get_json(url: str, params: dict | None = None) -> Any:
+def get_json(url: str, params: dict | None = None, trim: Callable[[Any], Any] | None = None) -> Any:
     # Short-lived in-memory cache: repeated searches in the dashboard don't re-download boards.
+    # trim(data) drops what is never used before it is cached: whole worldwide boards with descriptions
+    # add up to ~200 MB, more than a small server (Render free: 512 MB) has.
     key = url + "?" + json.dumps(params or {}, sort_keys=True)
     hit = _CACHE.get(key)
     if hit and time.time() - hit[0] < CACHE_SECONDS:
         return hit[1]
     data = _send("GET", url, params=params).json()
+    if trim:
+        data = trim(data)
     _CACHE[key] = (time.time(), data)
     return data
+
+
+# Any location the dashboard can search for: Indian cities (search.LOCATIONS), India itself and remote.
+# Jobs elsewhere are dropped from whole-board downloads (Greenhouse, Lever, Ashby) before caching.
+SEARCHABLE_PLACES = re.compile(
+    r"\bindia\b|\bind\b|bengaluru|bangalore|mumbai|pune|hyderabad|chennai|delhi|gurgaon|gurugram|noida|\bncr\b|"
+    r"kolkata|ahmedabad|gandhinagar|vadodara|baroda|jaipur|kochi|cochin|kerala|thiruvananthapuram|trivandrum|"
+    r"coimbatore|chandigarh|mohali|panchkula|indore|lucknow|thane|mysuru|mysore|visakhapatnam|vizag|bhubaneswar|"
+    r"goa|nagpur|nashik|surat|aurangabad|ghaziabad|faridabad|sriperumbudur",
+    re.I,
+)
+# Remote jobs count only when no country is named ("Remote", not "Remote - US").
+REMOTE_ANYWHERE = re.compile(r"^\W*(remote|anywhere|work from home)\W*$", re.I)
+
+
+def _searchable(*places: Any) -> bool:
+    places = [str(p) for p in places if p]
+    return bool(SEARCHABLE_PLACES.search(" | ".join(places))) or any(REMOTE_ANYWHERE.match(p) for p in places)
+
+
+def _trim_jobs(field: str | None, places: Callable[[dict], list]) -> Callable[[Any], Any]:
+    """Keep only jobs with a searchable location, in data[field] (or data itself when field is None)."""
+    def trim(data: Any) -> Any:
+        jobs = data if field is None else (data or {}).get(field)
+        if not isinstance(jobs, list):
+            return data
+        kept = [j for j in jobs if isinstance(j, dict) and _searchable(*places(j))]
+        return kept if field is None else {**data, field: kept}
+    return trim
+
+
+_trim_greenhouse = _trim_jobs("jobs", lambda j: [(j.get("location") or {}).get("name")]
+                              + [o.get("location") or o.get("name") for o in j.get("offices") or []])
+_trim_lever = _trim_jobs(None, lambda j: [j.get("country") == "IN" and "India", j.get("location"),
+                                          (j.get("categories") or {}).get("location"),
+                                          *((j.get("categories") or {}).get("allLocations") or [])])
+_trim_ashby = _trim_jobs("jobs", lambda j: [j.get("location")] + [x.get("location") for x in j.get("secondaryLocations") or []])
 
 
 def clean_html(value: Any) -> str:
@@ -212,7 +253,7 @@ def _newest(items: list, posted_of: Callable[[Any], Any], limit: int) -> list:
 def scrape_greenhouse(board: str, keep: Keep | None = None, limit: int = MAX_JOBS_PER_BOARD, count_only: bool = False, **_: Any) -> list:
     # Public Greenhouse Job Board API; content=true includes descriptions/offices.
     url = f"https://boards-api.greenhouse.io/v1/boards/{board}/jobs"
-    data = get_json(url, params={"content": "true"})
+    data = get_json(url, params={"content": "true"}, trim=_trim_greenhouse)
     matches = []
     for job in data.get("jobs", []):
         offices = [o.get("location") or o.get("name") for o in job.get("offices") or []]
@@ -237,7 +278,7 @@ def scrape_greenhouse(board: str, keep: Keep | None = None, limit: int = MAX_JOB
 
 def scrape_lever(board: str, keep: Keep | None = None, limit: int = MAX_JOBS_PER_BOARD, count_only: bool = False, **_: Any) -> list:
     url = f"https://api.lever.co/v0/postings/{board}"
-    data = get_json(url, params={"mode": "json"})
+    data = get_json(url, params={"mode": "json"}, trim=_trim_lever)
     matches = []
     for job in data if isinstance(data, list) else []:
         categories = job.get("categories") or {}
@@ -286,7 +327,7 @@ def scrape_lever(board: str, keep: Keep | None = None, limit: int = MAX_JOBS_PER
 
 def scrape_ashby(board: str, keep: Keep | None = None, limit: int = MAX_JOBS_PER_BOARD, count_only: bool = False, **_: Any) -> list:
     url = f"https://api.ashbyhq.com/posting-api/job-board/{board}"
-    data = get_json(url, params={"includeCompensation": "true"})
+    data = get_json(url, params={"includeCompensation": "true"}, trim=_trim_ashby)
     matches = []
     for job in data.get("jobs", []):
         location = first_nonempty(job.get("location"), "")
