@@ -110,6 +110,7 @@
   .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
   .chip { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: #f6f7f8; color: #1c1c1c; }
   .chip.edited { background: var(--warn-soft); color: #b54708; }
+  .chip.new { background: #16a34a; color: #fff; font-weight: 700; letter-spacing: .02em; }
   .actions { display: flex; gap: 4px; align-items: center; }
   .status { font-size: 13px; margin-top: 8px; padding: 6px 10px; border-radius: 6px; }
   .status.ok { background: var(--ok-soft); color: var(--ok); }
@@ -546,7 +547,9 @@ async function runSearch(c) {
     });
     if (!data) return; // a newer search replaced this one
     state.jobs = data.jobs; state.selected.clear(); state.status = {};
-    $("stats").textContent = `${data.matched.toLocaleString("en-IN")}+ matching jobs across ${data.companiesSearched} companies · showing ${data.jobs.length} · ${data.postedCount} posted so far`;
+    state.newKeys = markNewJobs(data.jobs);
+    const newCount = data.jobs.filter((j) => state.newKeys.has(j.sourceKey)).length;
+    $("stats").textContent = `${data.matched.toLocaleString("en-IN")}+ matching jobs across ${data.companiesSearched} companies · showing ${data.jobs.length}${newCount ? ` · ${newCount} new` : ""} · ${data.postedCount} posted so far`;
     if (data.errors.length) toast(`${data.errors.length} company site(s) didn't respond and were skipped`);
     renderList();
   } catch (err) {
@@ -554,6 +557,19 @@ async function runSearch(c) {
     $("stats").textContent = statsBefore;
     $("list").innerHTML = `<div class="empty">${esc(/^Search failed/.test(err.message) ? err.message : "Search failed: " + err.message)}</div>`;
   } finally { if (run === state.searchRun) $("searchBtn").disabled = false; }
+}
+
+// "New" tag: a job is new the first time a search shows it in this browser. The very first time (nothing
+// remembered yet) only jobs posted in the last 24 hours count as new, so not everything lights up.
+const SEEN_KEY = "seenJobs", SEEN_MAX = 5000, NEW_FIRST_RUN_MS = 24 * 3600 * 1000;
+function markNewJobs(jobs) {
+  const remembered = store.get(SEEN_KEY);
+  const seen = new Set(Array.isArray(remembered) ? remembered : []);
+  const fresh = new Set(jobs.filter((j) => !seen.has(j.sourceKey)
+    && (remembered || (j.sourcePostedAt && Date.now() - new Date(j.sourcePostedAt) < NEW_FIRST_RUN_MS))).map((j) => j.sourceKey));
+  // Newest first, so the oldest keys drop off once the list is full.
+  store.set(SEEN_KEY, [...new Set([...jobs.map((j) => j.sourceKey), ...seen])].slice(0, SEEN_MAX));
+  return fresh;
 }
 
 // The server searches in the background (a search can outlast the hosting proxy's request limit);
@@ -615,6 +631,7 @@ function renderList() {
         <p class="title" data-act="edit">${esc(p.title)}</p>
         <div class="sub">${esc(p.externalCompanyName)}${place ? " · " + esc(place) + extraLocs : ""}${job.sourcePostedAt ? " · posted " + esc(timeAgo(job.sourcePostedAt)) : ""}</div>
         <div class="chips">
+          ${state.newKeys?.has(k) ? `<span class="chip new" title="First time this job shows up in your searches">New</span>` : ""}
           ${done ? "" : dupChip(job)}
           ${job.sourceName ? `<span class="chip" title="Found on this job platform">via ${esc(job.sourceName.replace(/\s*\(.*\)$/, ""))}</span>` : ""}
           ${job.sector ? `<span class="chip">${esc(job.sector)}</span>` : ""}
