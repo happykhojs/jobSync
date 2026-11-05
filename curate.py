@@ -17,6 +17,7 @@ import json
 import logging
 import os
 import re
+import time
 from pathlib import Path
 
 import requests
@@ -135,6 +136,69 @@ def _job_input(job: dict) -> dict:
     }
 
 
+# Gemini sometimes answers 503 "high demand" (or 429/500) for a while. Retry the same model a couple of
+# times, then fall back to other models. GEMINI_FALLBACK_MODELS (comma-separated) overrides the list.
+DEFAULT_FALLBACK_MODELS = ["gemini-3-flash-preview", "gemini-flash-latest"]
+RETRY_STATUSES = {429, 500, 502, 503, 504}
+RETRY_WAITS = [2, 5]  # seconds before the 2nd and 3rd try of one model
+# Not every model accepts thinkingLevel "minimal"; these get the lowest level they do accept.
+THINKING_LEVEL = {"gemini-flash-latest": "low"}
+
+
+class GeminiError(RuntimeError):
+    def __init__(self, message: str, busy: bool = False) -> None:
+        super().__init__(message)
+        self.busy = busy  # every model was overloaded or rate limited: worth trying again later
+
+
+def gemini_models(model: str | None = None) -> list[str]:
+    primary = model or os.environ.get("GEMINI_MODEL", "").strip() or DEFAULT_MODEL
+    extra = os.environ.get("GEMINI_FALLBACK_MODELS")
+    fallbacks = [m.strip() for m in extra.split(",")] if extra is not None else DEFAULT_FALLBACK_MODELS
+    return list(dict.fromkeys(m for m in [primary, *fallbacks] if m))
+
+
+def _error_text(response: requests.Response) -> str:
+    try:
+        return response.json()["error"]["message"]
+    except (ValueError, KeyError, TypeError):
+        return response.text[:300]
+
+
+def gemini_generate(body: dict, api_key: str, model: str | None = None, timeout: int = TIMEOUT) -> tuple[dict, str]:
+    """POST generateContent with retries and model fallback. Returns (response JSON, model used)."""
+    models = gemini_models(model)
+    last, all_busy = "", True
+    for name in models:
+        config = dict(body.get("generationConfig") or {})
+        if "thinkingConfig" in config and name in THINKING_LEVEL:
+            config["thinkingConfig"] = {**config["thinkingConfig"], "thinkingLevel": THINKING_LEVEL[name]}
+        request_body = {**body, "generationConfig": config}
+        for attempt in range(len(RETRY_WAITS) + 1):
+            if attempt:
+                time.sleep(RETRY_WAITS[attempt - 1])
+            try:
+                response = requests.post(
+                    GEMINI_URL.format(model=name), json=request_body, timeout=timeout,
+                    headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
+                )
+            except requests.RequestException as exc:  # timeout or network problem: try the next model
+                last = f"Gemini ({name}): {exc}"
+                break
+            if response.ok:
+                if name != models[0]:
+                    logging.info("Gemini: %s was busy, used %s", models[0], name)
+                return response.json(), name
+            last = f"Gemini HTTP {response.status_code} ({name}): {_error_text(response)}"
+            logging.warning(last)
+            if response.status_code not in RETRY_STATUSES:
+                all_busy = False
+                break  # bad request or model unavailable: retrying won't help, try the next model
+    if all_busy:
+        raise GeminiError("Gemini is overloaded right now (all models busy). Please try again in a minute.", busy=True)
+    raise GeminiError(last or "Gemini request failed.")
+
+
 def _call_gemini(batch: list[dict], api_key: str, model: str, stats: dict) -> list[dict]:
     body = {
         "systemInstruction": {"parts": [{"text": INSTRUCTIONS}]},
@@ -146,17 +210,7 @@ def _call_gemini(batch: list[dict], api_key: str, model: str, stats: dict) -> li
             "thinkingConfig": {"thinkingLevel": "minimal"},
         },
     }
-    response = requests.post(
-        GEMINI_URL.format(model=model), json=body, timeout=TIMEOUT,
-        headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
-    )
-    if not response.ok:
-        try:
-            message = response.json()["error"]["message"]
-        except (ValueError, KeyError, TypeError):
-            message = response.text[:300]
-        raise RuntimeError(f"Gemini HTTP {response.status_code}: {message}")
-    data = response.json()
+    data, _ = gemini_generate(body, api_key, model)
     usage = data.get("usageMetadata") or {}
     stats["calls"] += 1
     stats["inputTokens"] += usage.get("promptTokenCount") or 0
@@ -216,6 +270,7 @@ def curate_jobs(jobs: list[dict], stats: dict | None = None) -> dict[str, dict]:
         except (requests.RequestException, RuntimeError, KeyError, IndexError, ValueError) as exc:
             logging.warning("Curation failed for %d jobs, using rule-based fields: %s", len(batch), exc)
             stats["errors"].append(str(exc))
+            stats["busy"] = stats.get("busy", False) or bool(getattr(exc, "busy", False))
             continue
         by_id = {c.get("id"): c for c in curated if isinstance(c, dict)}
         for job in batch:

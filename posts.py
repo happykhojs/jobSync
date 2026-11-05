@@ -21,6 +21,7 @@ from pathlib import Path
 import requests
 from bs4 import BeautifulSoup
 
+from curate import gemini_generate
 from workowon import AuthError, WorkowonClient
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -113,7 +114,6 @@ def write_post(action: str, style: str, prompt: str, post: dict) -> dict:
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY is not set in .env")
-    model = os.environ.get("GEMINI_MODEL", "").strip() or DEFAULT_MODEL
     label, guide = STYLES.get(style, (None, None))
     request_parts = [f"Post type: {post.get('type') or 'TEXT'}"]
     if label:
@@ -139,19 +139,10 @@ def write_post(action: str, style: str, prompt: str, post: dict) -> dict:
             "thinkingConfig": {"thinkingLevel": "minimal"},
         },
     }
-    response = requests.post(
-        GEMINI_URL.format(model=model), json=body, timeout=TIMEOUT,
-        headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
-    )
-    if not response.ok:
-        try:
-            message = response.json()["error"]["message"]
-        except (ValueError, KeyError, TypeError):
-            message = response.text[:300]
-        raise RuntimeError(f"Gemini HTTP {response.status_code}: {message}")
-    data = response.json()
+    # Retries and falls back to other models when Gemini is overloaded.
+    data, model = gemini_generate(body, api_key, os.environ.get("GEMINI_MODEL", "").strip() or DEFAULT_MODEL, TIMEOUT)
     usage = data.get("usageMetadata") or {}
-    logging.info("Gemini wrote a post (%s/%s, tokens in=%s out=%s)", action, style, usage.get("promptTokenCount"), usage.get("candidatesTokenCount"))
+    logging.info("Gemini (%s) wrote a post (%s/%s, tokens in=%s out=%s)", model, action, style, usage.get("promptTokenCount"), usage.get("candidatesTokenCount"))
     out = json.loads(data["candidates"][0]["content"]["parts"][0]["text"])
     return {
         "title": (out.get("title") or "").strip()[:MAX_TITLE_CHARS],

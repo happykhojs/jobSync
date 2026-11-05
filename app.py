@@ -340,7 +340,8 @@ def improve_jobs():
             improved.append({"sourceKey": key, "payload": payload, "duplicate": duplicates.best_match(payload)})
         save_json(EDITS_FILE, edits)
     if not improved and stats["errors"]:
-        return error(f"AI could not improve these jobs: {stats['errors'][0]}", 502)
+        # Gemini overloaded is temporary (503, the dashboard shows the message); other failures are upstream errors.
+        return error(f"AI could not improve these jobs: {stats['errors'][0]}", 503 if stats.get("busy") else 502)
     return jsonify({"jobs": improved, "stats": stats})
 
 
@@ -624,7 +625,7 @@ def post_ai():
         return jsonify(write_post(action, body.get("style") or "", prompt, post))
     except Exception as exc:
         logging.warning("AI post failed: %s", exc)
-        return error(str(exc), 502)
+        return error(str(exc), 503 if getattr(exc, "busy", False) else 502)
 
 
 if __name__ == "__main__":
