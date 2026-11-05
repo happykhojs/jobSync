@@ -26,6 +26,7 @@ import re
 import ssl
 import threading
 import time
+import zlib
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable
@@ -77,8 +78,28 @@ session.mount("https://", _SharedTLSAdapter(pool_maxsize=16))
 session.headers.update({"User-Agent": USER_AGENT, "Accept": "application/json"})
 
 
-_CACHE: dict[str, tuple[float, Any]] = {}
+# Cached responses are kept as compressed JSON: parsed, a full search's cache is ~5x bigger than the
+# JSON itself (hundreds of MB), compressed it's a few MB. Each hit unpacks a fresh copy.
+_CACHE: dict[str, tuple[float, bytes]] = {}
+_CACHE_LOCK = threading.Lock()
 RATE_LIMIT_WAIT_SECONDS = 10
+
+
+def _cache_get(key: str) -> Any:
+    hit = _CACHE.get(key)
+    if hit and time.time() - hit[0] < CACHE_SECONDS:
+        return json.loads(zlib.decompress(hit[1]))
+    return None
+
+
+def _cache_put(key: str, data: Any) -> None:
+    packed = zlib.compress(json.dumps(data, ensure_ascii=False, separators=(",", ":")).encode("utf-8"), 6)
+    now = time.time()
+    with _CACHE_LOCK:
+        _CACHE[key] = (now, packed)
+        # Drop expired entries so the cache doesn't grow forever on a long-running server.
+        for old in [k for k, (at, _) in _CACHE.items() if now - at >= CACHE_SECONDS]:
+            _CACHE.pop(old, None)
 
 
 def _send(method: str, url: str, **kwargs: Any) -> requests.Response:
@@ -97,16 +118,16 @@ def get_json(url: str, params: dict | None = None, trim: Callable[[Any], Any] | 
     # trim(data) drops what is never used before it is cached: whole worldwide boards with descriptions
     # add up to ~200 MB, more than a small server (Render free: 512 MB) has.
     key = url + "?" + json.dumps(params or {}, sort_keys=True)
-    hit = _CACHE.get(key)
-    if hit and time.time() - hit[0] < CACHE_SECONDS:
-        return hit[1]
+    data = _cache_get(key)
+    if data is not None:
+        return data
     if trim:
         # Whole boards are big (up to ~15 MB, several times that once parsed): only a few at a time.
         with _BIG_DOWNLOADS:
             data = trim(_send("GET", url, params=params).json())
     else:
         data = _send("GET", url, params=params).json()
-    _CACHE[key] = (time.time(), data)
+    _cache_put(key, data)
     return data
 
 
@@ -458,11 +479,11 @@ WORKDAY_MAX_PAGES = 50
 
 def post_json(url: str, body: dict) -> Any:
     key = url + "#" + json.dumps(body, sort_keys=True)
-    hit = _CACHE.get(key)
-    if hit and time.time() - hit[0] < CACHE_SECONDS:
-        return hit[1]
+    data = _cache_get(key)
+    if data is not None:
+        return data
     data = _send("POST", url, json=body, headers={"Content-Type": "application/json"}).json()
-    _CACHE[key] = (time.time(), data)
+    _cache_put(key, data)
     return data
 
 
@@ -776,7 +797,43 @@ def scrape_amazon(
     return records
 
 
+def _workable_places(job: dict) -> list[str]:
+    places = [", ".join(x for x in (l.get("city"), l.get("region"), l.get("country")) if x) for l in job.get("locations") or []]
+    return places or [", ".join(x for x in (job.get("city"), job.get("state"), job.get("country")) if x)]
+
+
+_trim_workable = _trim_jobs("jobs", _workable_places)
+
+
+def scrape_workable(board: str, keep: Keep | None = None, limit: int = MAX_JOBS_PER_BOARD, count_only: bool = False, **_: Any) -> list:
+    # Public Workable job-board widget API (one call per company, descriptions included). Used by many smaller
+    # companies. Workable rate limits hard, so the 30-minute cache matters here.
+    data = get_json(f"https://apply.workable.com/api/v1/widget/accounts/{board}", params={"details": "true"}, trim=_trim_workable)
+    matches = []
+    for job in data.get("jobs") or []:
+        places = _workable_places(job)
+        posted = job.get("published_on") or job.get("created_at")
+        if _keep(keep, job.get("title"), places, posted, [job.get("department"), job.get("function"), job.get("industry")]):
+            matches.append((job, places, posted))
+    if count_only:
+        return [to_iso(m[2]) for m in matches]
+    records = []
+    for job, places, posted in _newest(matches, lambda m: m[2], limit):
+        remote = str(job.get("telecommuting")).lower() == "true"
+        record = make_record(
+            "workable", board, job.get("shortcode") or job.get("url"), job.get("title"), data.get("name") or board,
+            job.get("url") or job.get("shortlink"), job.get("description"),
+            places[0] if places else "", posted, job.get("employment_type"), "remote" if remote else None,
+            raw={k: v for k, v in job.items() if k != "description"},
+            extra_locations=places[1:], tags=[job.get("department"), job.get("function")],
+        )
+        if record:
+            records.append(record)
+    return records
+
+
 SCRAPERS = {
+    "workable": scrape_workable,
     "greenhouse": scrape_greenhouse,
     "lever": scrape_lever,
     "ashby": scrape_ashby,
