@@ -136,8 +136,13 @@ def is_startup(board: dict) -> bool:
     return "startup" in (board.get("companyType") or "").lower()
 
 
+def is_small_company(board: dict) -> bool:
+    return company_size(board) == "Small (under 30 openings)"
+
+
 def options(catalog: list[dict]) -> dict:
     startups = [b for b in catalog if is_startup(b)]
+    small = [b for b in catalog if is_small_company(b)]
     return {
         "locations": list(LOCATIONS),
         "sectors": sorted({b.get("sector") for b in catalog if b.get("sector")}),
@@ -152,6 +157,9 @@ def options(catalog: list[dict]) -> dict:
         # Dedicated Startups filter: Indian Startup companies only, biggest first.
         "startups": [b["companyName"] for b in sorted(startups, key=lambda b: b.get("indiaOpenings") or 0, reverse=True)],
         "startupOpenings": {b["companyName"]: b.get("indiaOpenings") or 0 for b in startups},
+        # Dedicated Smaller companies filter: under 30 India openings, biggest first.
+        "smallCompanies": [b["companyName"] for b in sorted(small, key=lambda b: b.get("indiaOpenings") or 0, reverse=True)],
+        "smallCompanyOpenings": {b["companyName"]: b.get("indiaOpenings") or 0 for b in small},
         "experienceLevels": EXPERIENCE_LEVELS,
         "experience": list(EXPERIENCE_BANDS),
         "employmentTypes": EMPLOYMENT,
@@ -255,12 +263,14 @@ def search(
     types = set(criteria.get("companyTypes") or [])
     companies = set(criteria.get("companies") or [])
     startups = set(criteria.get("startups") or [])
-    # Startups section and Companies filter both pick employers; either match is enough.
-    wanted_companies = companies | startups
+    small_companies = set(criteria.get("smallCompanies") or [])
+    # Company picker sections (Companies / Startups / Smaller) all select employers; either match is enough.
+    wanted_companies = companies | startups | small_companies
     sources = set(criteria.get("sources") or []) & set(SOURCES)
     sizes = set(criteria.get("companySizes") or []) & set(COMPANY_SIZES)
     new_only = bool(criteria.get("newCompaniesOnly"))
     startups_only = bool(criteria.get("startupsOnly"))
+    small_only = bool(criteria.get("smallCompaniesOnly"))
     # Both or neither role type selected means any role.
     role_types = set(criteria.get("roleTypes") or []) & set(ROLE_TYPES)
     tech_only = role_types == {"Tech roles"}
@@ -274,6 +284,7 @@ def search(
         and (not sizes or company_size(b) in sizes)
         and (not new_only or is_new_company(b))
         and (not startups_only or is_startup(b))
+        and (not small_only or is_small_company(b))
     ]
 
     loc_re = _location_regex(criteria.get("locations") or [])
