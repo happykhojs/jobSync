@@ -2115,6 +2115,16 @@
       "addedOn": "2026-10-27"
     },
     {
+      "provider": "workable",
+      "board": "deepsource",
+      "companyName": "DeepSource",
+      "website": "https://deepsource.com",
+      "sector": "IT & Software",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-11",
+      "indiaOpenings": 20
+    },
+    {
       "provider": "workday",
       "board": "pfizer/wd1/PfizerCareers",
       "companyName": "Pfizer",
@@ -3364,6 +3374,16 @@
     },
     {
       "provider": "greenhouse",
+      "board": "slice",
+      "companyName": "Slice",
+      "website": "https://sliceit.com",
+      "sector": "Fintech",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-11",
+      "indiaOpenings": 4
+    },
+    {
+      "provider": "greenhouse",
       "board": "yugabyte",
       "companyName": "Yugabyte",
       "website": "https://www.yugabyte.com",
@@ -3440,6 +3460,16 @@
       "sector": "Media & Advertising",
       "companyType": "Multinational (MNC)",
       "addedOn": "2026-11-05",
+      "indiaOpenings": 3
+    },
+    {
+      "provider": "smartrecruiters",
+      "board": "Unacademy",
+      "companyName": "Unacademy",
+      "website": "https://unacademy.com",
+      "sector": "Education & HR Tech",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-11",
       "indiaOpenings": 3
     },
     {
@@ -3563,6 +3593,46 @@
       "indiaOpenings": 1
     },
     {
+      "provider": "smartrecruiters",
+      "board": "Cars24",
+      "companyName": "Cars24",
+      "website": "https://www.cars24.com",
+      "sector": "Automotive",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-11",
+      "indiaOpenings": 1
+    },
+    {
+      "provider": "smartrecruiters",
+      "board": "NewtonSchool",
+      "companyName": "Newton School",
+      "website": "https://www.newtonschool.co",
+      "sector": "Education & HR Tech",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-11",
+      "indiaOpenings": 1
+    },
+    {
+      "provider": "smartrecruiters",
+      "board": "NoBroker",
+      "companyName": "NoBroker",
+      "website": "https://www.nobroker.in",
+      "sector": "Real Estate",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-11",
+      "indiaOpenings": 1
+    },
+    {
+      "provider": "smartrecruiters",
+      "board": "Upstox",
+      "companyName": "Upstox",
+      "website": "https://upstox.com",
+      "sector": "Fintech",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-11",
+      "indiaOpenings": 1
+    },
+    {
       "provider": "greenhouse",
       "board": "cloudflare",
       "companyName": "Cloudflare",
@@ -3570,6 +3640,46 @@
       "sector": "IT & Software",
       "companyType": "Multinational (MNC)",
       "addedOn": "2026-11-03",
+      "indiaOpenings": 0
+    },
+    {
+      "provider": "lever",
+      "board": "porter",
+      "companyName": "Porter",
+      "website": "https://porter.in",
+      "sector": "Logistics & Supply Chain",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-11",
+      "indiaOpenings": 0
+    },
+    {
+      "provider": "ashby",
+      "board": "bounce",
+      "companyName": "Bounce",
+      "website": "https://www.bounceshare.com",
+      "sector": "Automotive",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-11",
+      "indiaOpenings": 0
+    },
+    {
+      "provider": "ashby",
+      "board": "navi",
+      "companyName": "Navi",
+      "website": "https://navi.com",
+      "sector": "Fintech",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-11",
+      "indiaOpenings": 0
+    },
+    {
+      "provider": "workable",
+      "board": "1mg",
+      "companyName": "Tata 1mg",
+      "website": "https://www.1mg.com",
+      "sector": "Healthcare & Medical Devices",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-11",
       "indiaOpenings": 0
     }
   ]

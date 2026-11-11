@@ -132,7 +132,12 @@ SORTS = {"newest": "Newest first", "openings": "Biggest employers first"}
 MAX_WORKERS = 8
 
 
+def is_startup(board: dict) -> bool:
+    return "startup" in (board.get("companyType") or "").lower()
+
+
 def options(catalog: list[dict]) -> dict:
+    startups = [b for b in catalog if is_startup(b)]
     return {
         "locations": list(LOCATIONS),
         "sectors": sorted({b.get("sector") for b in catalog if b.get("sector")}),
@@ -144,6 +149,9 @@ def options(catalog: list[dict]) -> dict:
             sector: sum(b.get("indiaOpenings") or 0 for b in catalog if b.get("sector") == sector)
             for sector in {b.get("sector") for b in catalog if b.get("sector")}
         },
+        # Dedicated Startups filter: Indian Startup companies only, biggest first.
+        "startups": [b["companyName"] for b in sorted(startups, key=lambda b: b.get("indiaOpenings") or 0, reverse=True)],
+        "startupOpenings": {b["companyName"]: b.get("indiaOpenings") or 0 for b in startups},
         "experienceLevels": EXPERIENCE_LEVELS,
         "experience": list(EXPERIENCE_BANDS),
         "employmentTypes": EMPLOYMENT,
@@ -246,9 +254,13 @@ def search(
     sectors = set(criteria.get("sectors") or [])
     types = set(criteria.get("companyTypes") or [])
     companies = set(criteria.get("companies") or [])
+    startups = set(criteria.get("startups") or [])
+    # Startups section and Companies filter both pick employers; either match is enough.
+    wanted_companies = companies | startups
     sources = set(criteria.get("sources") or []) & set(SOURCES)
     sizes = set(criteria.get("companySizes") or []) & set(COMPANY_SIZES)
     new_only = bool(criteria.get("newCompaniesOnly"))
+    startups_only = bool(criteria.get("startupsOnly"))
     # Both or neither role type selected means any role.
     role_types = set(criteria.get("roleTypes") or []) & set(ROLE_TYPES)
     tech_only = role_types == {"Tech roles"}
@@ -257,10 +269,11 @@ def search(
         b for b in catalog
         if (not sectors or b.get("sector") in sectors)
         and (not types or b.get("companyType") in types)
-        and (not companies or b["companyName"] in companies)
+        and (not wanted_companies or b["companyName"] in wanted_companies)
         and (not sources or SOURCES[bool(b.get("platform"))] in sources)
         and (not sizes or company_size(b) in sizes)
         and (not new_only or is_new_company(b))
+        and (not startups_only or is_startup(b))
     ]
 
     loc_re = _location_regex(criteria.get("locations") or [])
