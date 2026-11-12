@@ -315,7 +315,7 @@
     <p>Use your admin account to post jobs.</p>
     <div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="username" required></div>
     <div class="field"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required></div>
-    <div class="field" id="turnstileField" hidden>
+    <div class="field" id="turnstileField">
       <label>Cloudflare check</label>
       <div id="turnstile" class="cf-turnstile" style="min-width:300px;width:100%;min-height:65px"></div>
     </div>
@@ -390,11 +390,12 @@ function renderUser() {
 }
 
 let afterLogin = null;
-let turnstileSiteKey = "";
+let turnstileSiteKey = JobSyncTurnstile.DEFAULT_SITE_KEY;
 async function ensureTurnstile() {
-  if (!turnstileSiteKey) return;
-  $("turnstileField").hidden = false;
-  try { await JobSyncTurnstile.mount($("turnstile"), turnstileSiteKey); }
+  const el = $("turnstile");
+  const key = JobSyncTurnstile.siteKey(turnstileSiteKey);
+  el.dataset.sitekey = key;
+  try { await JobSyncTurnstile.mount(el, key); }
   catch (err) { $("loginError").textContent = err.message; }
 }
 async function openLogin(then) {
@@ -405,7 +406,7 @@ async function openLogin(then) {
     const d = await api("/api/login-defaults");
     if (d.email && !$("email").value) $("email").value = d.email;
     if (d.password && !$("password").value) $("password").value = d.password;
-    turnstileSiteKey = d.turnstileSiteKey || turnstileSiteKey;
+    turnstileSiteKey = d.turnstileSiteKey || turnstileSiteKey || JobSyncTurnstile.DEFAULT_SITE_KEY;
   } catch {}
   $("loginModal").classList.add("open");
   await ensureTurnstile();
@@ -417,7 +418,7 @@ $("loginForm").onsubmit = async (e) => {
   e.preventDefault();
   $("loginSubmit").disabled = true; $("loginError").textContent = "";
   const turnstileToken = JobSyncTurnstile.token($("turnstile"));
-  if (turnstileSiteKey && !turnstileToken) {
+  if (!turnstileToken) {
     $("loginError").textContent = "Complete the Cloudflare check before logging in.";
     $("loginSubmit").disabled = false;
     return;

@@ -452,7 +452,7 @@
         <button type="button" id="pwToggle" aria-label="Show password" title="Show password"></button>
       </div>
     </div>
-    <div class="field" id="turnstileField" hidden>
+    <div class="field" id="turnstileField">
       <label>Cloudflare check</label>
       <div id="turnstile" class="cf-turnstile" style="min-width:300px;width:100%;min-height:65px"></div>
     </div>
@@ -483,7 +483,7 @@
       </span>
       <button type="button" class="btn btn-primary btn-sm" id="bulkSave">Save logins</button>
     </div>
-    <div class="field" id="bulkTurnstileField" hidden>
+    <div class="field" id="bulkTurnstileField">
       <label>Cloudflare check (needed to log in saved accounts)</label>
       <div id="bulkTurnstile" class="cf-turnstile" style="min-width:300px;width:100%;min-height:65px"></div>
     </div>
@@ -689,23 +689,22 @@ async function loadAccounts() {
   state.account = state.accounts.includes(saved) ? saved : state.accounts[0] || null;
   renderAccounts(); loadPosts(true);
 }
+function turnstileKey() {
+  return JobSyncTurnstile.siteKey(state.options?.turnstileSiteKey || JobSyncTurnstile.DEFAULT_SITE_KEY);
+}
 async function ensureLoginTurnstile() {
-  const key = state.options?.turnstileSiteKey;
-  if (!key) return;
-  $("turnstileField").hidden = false;
-  try { await JobSyncTurnstile.mount($("turnstile"), key); }
+  const el = $("turnstile");
+  el.dataset.sitekey = turnstileKey();
+  try { await JobSyncTurnstile.mount(el, turnstileKey()); }
   catch (err) { $("loginError").textContent = err.message; }
 }
 async function ensureBulkTurnstile() {
-  const key = state.options?.turnstileSiteKey;
-  if (!key) return;
-  $("bulkTurnstileField").hidden = false;
-  try { await JobSyncTurnstile.mount($("bulkTurnstile"), key); }
+  const el = $("bulkTurnstile");
+  el.dataset.sitekey = turnstileKey();
+  try { await JobSyncTurnstile.mount(el, turnstileKey()); }
   catch (err) { bulkStatus(err.message, true); }
 }
 function requireTurnstile(el, errEl) {
-  const key = state.options?.turnstileSiteKey;
-  if (!key) return "";
   const token = JobSyncTurnstile.token(el);
   if (!token) {
     if (errEl) errEl.textContent = "Complete the Cloudflare check before logging in.";
@@ -804,12 +803,12 @@ async function loginSaved(email, { quiet = false } = {}) {
   if (!$("bulkModal").classList.contains("open")) await openBulk();
   await ensureBulkTurnstile();
   let turnstileToken = JobSyncTurnstile.token($("bulkTurnstile"));
-  if (!turnstileToken && state.options?.turnstileSiteKey) {
+  if (!turnstileToken) {
     bulkStatus("Waiting for Cloudflare check…");
     JobSyncTurnstile.reset($("bulkTurnstile"));
     turnstileToken = await waitForTurnstile($("bulkTurnstile"));
   }
-  if (state.options?.turnstileSiteKey && !turnstileToken) {
+  if (!turnstileToken) {
     bulkStatus("Complete the Cloudflare check, then try again.", true);
     if (!quiet) toast("Complete the Cloudflare check, then try again.");
     return false;
