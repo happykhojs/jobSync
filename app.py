@@ -131,13 +131,18 @@ def session_info():
     return jsonify({"loggedIn": True, "email": client.email, "roles": me.get("roles", [])})
 
 
-# Public Turnstile site key used by workowon.com login. Override with TURNSTILE_SITE_KEY if WorkOwon rotates it.
+# Public Turnstile site key used by workowon.com login (secret stays on WorkOwon's backend).
+# Override with TURNSTILE_SITE_KEY or NEXT_PUBLIC_TURNSTILE_SITE_KEY if WorkOwon rotates it.
 # The JobSync hostname (e.g. jobsync-wgs9.onrender.com) must be allowed on that Turnstile widget.
 DEFAULT_TURNSTILE_SITE_KEY = "0x4AAAAAAF8mwjtmsgdq3yaK"
 
 
 def turnstile_site_key() -> str:
-    return (os.environ.get("TURNSTILE_SITE_KEY") or DEFAULT_TURNSTILE_SITE_KEY).strip()
+    return (
+        os.environ.get("TURNSTILE_SITE_KEY")
+        or os.environ.get("NEXT_PUBLIC_TURNSTILE_SITE_KEY")
+        or DEFAULT_TURNSTILE_SITE_KEY
+    ).strip()
 
 
 def turnstile_from_body(body: dict | None) -> str:
