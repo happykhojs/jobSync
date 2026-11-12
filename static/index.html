@@ -315,6 +315,10 @@
     <p>Use your admin account to post jobs.</p>
     <div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="username" required></div>
     <div class="field"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required></div>
+    <div class="field" id="turnstileField" hidden>
+      <label>Cloudflare check</label>
+      <div id="turnstile" class="cf-turnstile" style="min-width:300px;width:100%;min-height:65px"></div>
+    </div>
     <div class="form-error" id="loginError"></div>
     <div class="group" style="justify-content:flex-end">
       <button type="button" class="btn btn-ghost" id="loginCancel">Cancel</button>
@@ -324,6 +328,7 @@
 </div>
 <div class="toast" id="toast"></div>
 
+<script src="/static/turnstile.js"></script>
 <script src="/static/fun.js"></script>
 <script src="/static/superfun.js"></script>
 <script src="/static/chaos.js"></script>
@@ -385,6 +390,13 @@ function renderUser() {
 }
 
 let afterLogin = null;
+let turnstileSiteKey = "";
+async function ensureTurnstile() {
+  if (!turnstileSiteKey) return;
+  $("turnstileField").hidden = false;
+  try { await JobSyncTurnstile.mount($("turnstile"), turnstileSiteKey); }
+  catch (err) { $("loginError").textContent = err.message; }
+}
 async function openLogin(then) {
   afterLogin = then || null;
   $("loginError").textContent = "";
@@ -393,8 +405,10 @@ async function openLogin(then) {
     const d = await api("/api/login-defaults");
     if (d.email && !$("email").value) $("email").value = d.email;
     if (d.password && !$("password").value) $("password").value = d.password;
+    turnstileSiteKey = d.turnstileSiteKey || turnstileSiteKey;
   } catch {}
   $("loginModal").classList.add("open");
+  await ensureTurnstile();
   // Cursor at the end of the password so the admin just types the rest.
   setTimeout(() => { const p = $("password"); p.focus(); p.setSelectionRange(p.value.length, p.value.length); }, 50);
 }
@@ -402,13 +416,24 @@ $("loginCancel").onclick = () => { $("loginModal").classList.remove("open"); aft
 $("loginForm").onsubmit = async (e) => {
   e.preventDefault();
   $("loginSubmit").disabled = true; $("loginError").textContent = "";
+  const turnstileToken = JobSyncTurnstile.token($("turnstile"));
+  if (turnstileSiteKey && !turnstileToken) {
+    $("loginError").textContent = "Complete the Cloudflare check before logging in.";
+    $("loginSubmit").disabled = false;
+    return;
+  }
   try {
-    state.session = await api("/api/login", { method: "POST", body: JSON.stringify({ email: $("email").value, password: $("password").value }) });
+    state.session = await api("/api/login", { method: "POST", body: JSON.stringify({
+      email: $("email").value, password: $("password").value, turnstileToken,
+    }) });
     $("password").value = "";
     $("loginModal").classList.remove("open");
     renderUser(); toast("Logged in");
     if (afterLogin) { const fn = afterLogin; afterLogin = null; fn(); }
-  } catch (err) { $("loginError").textContent = err.message; }
+  } catch (err) {
+    $("loginError").textContent = err.message;
+    JobSyncTurnstile.reset($("turnstile"));
+  }
   finally { $("loginSubmit").disabled = false; }
 };
 

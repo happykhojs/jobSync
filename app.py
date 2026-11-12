@@ -131,12 +131,27 @@ def session_info():
     return jsonify({"loggedIn": True, "email": client.email, "roles": me.get("roles", [])})
 
 
+# Public Turnstile site key used by workowon.com login. Override with TURNSTILE_SITE_KEY if WorkOwon rotates it.
+# The JobSync hostname (e.g. jobsync-wgs9.onrender.com) must be allowed on that Turnstile widget.
+DEFAULT_TURNSTILE_SITE_KEY = "0x4AAAAAAF8mwjtmsgdq3yaK"
+
+
+def turnstile_site_key() -> str:
+    return (os.environ.get("TURNSTILE_SITE_KEY") or DEFAULT_TURNSTILE_SITE_KEY).strip()
+
+
+def turnstile_from_body(body: dict | None) -> str:
+    body = body or {}
+    return (body.get("turnstileToken") or body.get("cf-turnstile-response") or "").strip()
+
+
 @app.get("/api/login-defaults")
 def login_defaults():
     # Prefill values come from .env (LOGIN_EMAIL / LOGIN_PASSWORD_PREFILL); the dashboard only listens on localhost.
     return jsonify({
         "email": os.environ.get("LOGIN_EMAIL", ""),
         "password": os.environ.get("LOGIN_PASSWORD_PREFILL", ""),
+        "turnstileSiteKey": turnstile_site_key(),
     })
 
 
@@ -146,8 +161,11 @@ def login():
     email, password = (body.get("email") or "").strip(), body.get("password") or ""
     if not email or not password:
         return error("Email and password are required.")
+    token = turnstile_from_body(body)
+    if not token:
+        return error("Complete the Cloudflare check before logging in.", 401)
     try:
-        client.login(email, password)
+        client.login(email, password, turnstile_token=token)
         me = client.me()
     except AuthError as exc:
         return error(str(exc), 401)
@@ -478,6 +496,7 @@ def posts_page():
 def post_options():
     return jsonify({
         "types": POST_TYPES, "visibility": VISIBILITY,
+        "turnstileSiteKey": turnstile_site_key(),
         "styles": [{"id": k, "label": label} for k, (label, _) in STYLES.items()],
         "aiEnabled": bool(os.environ.get("GEMINI_API_KEY", "").strip()),
     })
@@ -498,8 +517,11 @@ def post_account_login():
     email, password = (body.get("email") or "").strip(), body.get("password") or ""
     if not email or not password:
         return error("Email and password are required.")
+    token = turnstile_from_body(body)
+    if not token:
+        return error("Complete the Cloudflare check before logging in.", 401)
     try:
-        accounts.login(email, password)
+        accounts.login(email, password, turnstile_token=token)
     except AuthError as exc:
         return error(str(exc), 401)
     return accounts_view(email=email)
@@ -528,12 +550,16 @@ def save_logins():
 
 @app.post("/api/posts/saved/login")
 def login_saved():
-    email = ((request.get_json(force=True) or {}).get("email") or "").strip()
+    body = request.get_json(force=True) or {}
+    email = (body.get("email") or "").strip()
     password = saved_logins.password(email)
     if not password:
         return error("This email isn't in your saved logins.", 404)
+    token = turnstile_from_body(body)
+    if not token:
+        return error("Complete the Cloudflare check before logging in.", 401)
     try:
-        accounts.login(email, password)
+        accounts.login(email, password, turnstile_token=token)
     except AuthError as exc:
         return error(f"{email}: {exc}", 401)
     return accounts_view(email=email)

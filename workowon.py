@@ -89,9 +89,17 @@ def _jwt_exp(token: str) -> float:
 
 def _error_message(response: requests.Response) -> str:
     try:
-        return response.json().get("message") or response.text[:300]
+        body = response.json()
     except ValueError:
         return response.text[:300] or f"HTTP {response.status_code}"
+    code = str(body.get("errorCode") or body.get("code") or "")
+    message = body.get("message") or response.text[:300] or f"HTTP {response.status_code}"
+    if code == "BOT_CHECK_FAILED" or "robot" in message.lower():
+        return (
+            "Cloudflare bot check failed. Complete the Turnstile challenge in the login form, "
+            "and make sure this site's hostname is allowed on WorkOwon's Turnstile widget."
+        )
+    return message
 
 
 class WorkowonClient:
@@ -125,8 +133,18 @@ class WorkowonClient:
         self.refresh_token = _find_key(body, ("refreshToken", "refresh_token")) or self.refresh_token
         self._save()
 
-    def login(self, email: str, password: str) -> None:
-        response = requests.post(f"{BASE_URL}/api/auth/login", json={"email": email, "password": password}, timeout=TIMEOUT)
+    def login(self, email: str, password: str, turnstile_token: str | None = None) -> None:
+        # WorkOwon sits behind Cloudflare Turnstile; the browser widget token is sent as X-Turnstile-Token.
+        headers = {}
+        token = (turnstile_token or "").strip()
+        if token:
+            headers["X-Turnstile-Token"] = token
+        response = requests.post(
+            f"{BASE_URL}/api/auth/login",
+            json={"email": email, "password": password},
+            headers=headers,
+            timeout=TIMEOUT,
+        )
         if not response.ok:
             raise AuthError(_error_message(response))
         with self._lock:

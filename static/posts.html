@@ -452,6 +452,10 @@
         <button type="button" id="pwToggle" aria-label="Show password" title="Show password"></button>
       </div>
     </div>
+    <div class="field" id="turnstileField" hidden>
+      <label>Cloudflare check</label>
+      <div id="turnstile" class="cf-turnstile" style="min-width:300px;width:100%;min-height:65px"></div>
+    </div>
     <div class="form-error" id="loginError"></div>
     <div class="group" style="justify-content:flex-end">
       <button type="button" class="btn btn-ghost" id="loginCancel">Cancel</button>
@@ -478,6 +482,10 @@
         <input type="file" id="csvInput" accept=".csv,.txt,text/csv,text/plain" hidden>
       </span>
       <button type="button" class="btn btn-primary btn-sm" id="bulkSave">Save logins</button>
+    </div>
+    <div class="field" id="bulkTurnstileField" hidden>
+      <label>Cloudflare check (needed to log in saved accounts)</label>
+      <div id="bulkTurnstile" class="cf-turnstile" style="min-width:300px;width:100%;min-height:65px"></div>
     </div>
     <div class="form-error" id="bulkStatus" style="color:var(--muted)"></div>
     <div class="group" style="justify-content:space-between;margin-bottom:6px">
@@ -518,6 +526,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<script src="/static/turnstile.js"></script>
 <script>
 const $ = (id) => document.getElementById(id);
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -680,10 +689,36 @@ async function loadAccounts() {
   state.account = state.accounts.includes(saved) ? saved : state.accounts[0] || null;
   renderAccounts(); loadPosts(true);
 }
-function openLogin(email = "") {
+async function ensureLoginTurnstile() {
+  const key = state.options?.turnstileSiteKey;
+  if (!key) return;
+  $("turnstileField").hidden = false;
+  try { await JobSyncTurnstile.mount($("turnstile"), key); }
+  catch (err) { $("loginError").textContent = err.message; }
+}
+async function ensureBulkTurnstile() {
+  const key = state.options?.turnstileSiteKey;
+  if (!key) return;
+  $("bulkTurnstileField").hidden = false;
+  try { await JobSyncTurnstile.mount($("bulkTurnstile"), key); }
+  catch (err) { bulkStatus(err.message, true); }
+}
+function requireTurnstile(el, errEl) {
+  const key = state.options?.turnstileSiteKey;
+  if (!key) return "";
+  const token = JobSyncTurnstile.token(el);
+  if (!token) {
+    if (errEl) errEl.textContent = "Complete the Cloudflare check before logging in.";
+    return null;
+  }
+  return token;
+}
+async function openLogin(email = "") {
   $("email").value = email;
   $("loginError").textContent = ""; $("password").value = ""; setPasswordVisible(false);
-  $("loginModal").classList.add("open"); (email ? $("password") : $("email")).focus();
+  $("loginModal").classList.add("open");
+  await ensureLoginTurnstile();
+  (email ? $("password") : $("email")).focus();
 }
 function setPasswordVisible(show) {
   $("password").type = show ? "text" : "password";
@@ -695,11 +730,18 @@ $("pwToggle").onclick = () => { setPasswordVisible($("password").type === "passw
 $("loginCancel").onclick = () => $("loginModal").classList.remove("open");
 $("loginForm").onsubmit = async (e) => {
   e.preventDefault(); $("loginSubmit").disabled = true; $("loginError").textContent = "";
+  const turnstileToken = requireTurnstile($("turnstile"), $("loginError"));
+  if (turnstileToken === null) { $("loginSubmit").disabled = false; return; }
   try {
-    const data = await api("/api/posts/accounts", { method: "POST", body: JSON.stringify({ email: $("email").value.trim(), password: $("password").value }) });
+    const data = await api("/api/posts/accounts", { method: "POST", body: JSON.stringify({
+      email: $("email").value.trim(), password: $("password").value, turnstileToken,
+    }) });
     setAccounts(data); $("loginModal").classList.remove("open");
     switchAccount(state.accounts.find((a) => a.toLowerCase() === data.email.toLowerCase()) || data.email);
-  } catch (err) { $("loginError").textContent = err.message; }
+  } catch (err) {
+    $("loginError").textContent = err.message;
+    JobSyncTurnstile.reset($("turnstile"));
+  }
   finally { $("loginSubmit").disabled = false; }
 };
 async function logout() {
@@ -711,10 +753,11 @@ async function logout() {
 }
 
 /* ---------- saved logins (many accounts, CSV) ---------- */
-function openBulk() {
+async function openBulk() {
   $("loginModal").classList.remove("open");
   $("bulkStatus").textContent = ""; $("bulkText").value = "";
   renderSaved(); $("bulkModal").classList.add("open");
+  await ensureBulkTurnstile();
 }
 $("manyBtn").onclick = openBulk;
 $("csvBtn").onclick = () => { openBulk(); $("csvInput").click(); };
@@ -745,26 +788,54 @@ $("csvInput").onchange = (e) => {
   const file = e.target.files[0]; e.target.value = ""; if (!file) return;
   const fd = new FormData(); fd.append("file", file); saveLogins(fd);
 };
+function waitForTurnstile(el, ms = 15000) {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    const tick = () => {
+      const token = JobSyncTurnstile.token(el);
+      if (token) return resolve(token);
+      if (Date.now() - start > ms) return resolve("");
+      setTimeout(tick, 250);
+    };
+    tick();
+  });
+}
 async function loginSaved(email, { quiet = false } = {}) {
+  if (!$("bulkModal").classList.contains("open")) await openBulk();
+  await ensureBulkTurnstile();
+  let turnstileToken = JobSyncTurnstile.token($("bulkTurnstile"));
+  if (!turnstileToken && state.options?.turnstileSiteKey) {
+    bulkStatus("Waiting for Cloudflare check…");
+    JobSyncTurnstile.reset($("bulkTurnstile"));
+    turnstileToken = await waitForTurnstile($("bulkTurnstile"));
+  }
+  if (state.options?.turnstileSiteKey && !turnstileToken) {
+    bulkStatus("Complete the Cloudflare check, then try again.", true);
+    if (!quiet) toast("Complete the Cloudflare check, then try again.");
+    return false;
+  }
   if (!quiet) toast(`Logging in ${email}…`);
   try {
-    setAccounts(await api("/api/posts/saved/login", { method: "POST", body: JSON.stringify({ email }) }));
+    setAccounts(await api("/api/posts/saved/login", { method: "POST", body: JSON.stringify({ email, turnstileToken }) }));
+    JobSyncTurnstile.reset($("bulkTurnstile"));
     if (!quiet) switchAccount(state.accounts.find((a) => a.toLowerCase() === email.toLowerCase()) || email);
     return true;
   } catch (err) {
-    if (quiet) return false;
-    toast(err.message); openLogin(email); $("loginError").textContent = "Saved password didn't work. Enter it again."; return false;
+    JobSyncTurnstile.reset($("bulkTurnstile"));
+    if (quiet) { bulkStatus(`${email}: ${err.message}`, true); return false; }
+    toast(err.message); openLogin(email); $("loginError").textContent = err.message; return false;
   }
 }
 $("savedList").onclick = async (e) => {
   const login = e.target.closest("[data-login]"), use = e.target.closest("[data-use]"), forget = e.target.closest("[data-forget]");
-  if (login) { login.disabled = true; login.textContent = "Logging in…"; if (await loginSaved(login.dataset.login, { quiet: true })) { switchAccount(login.dataset.login); } else { bulkStatus(`${login.dataset.login}: login failed. Check the password.`, true); renderSaved(); } }
+  if (login) { login.disabled = true; login.textContent = "Logging in…"; if (await loginSaved(login.dataset.login, { quiet: true })) { switchAccount(login.dataset.login); } else { bulkStatus(`${login.dataset.login}: login failed. Check the password or Cloudflare check.`, true); renderSaved(); } }
   if (use) { switchAccount(use.dataset.use); $("bulkModal").classList.remove("open"); }
   if (forget) { setAccounts(await api(`/api/posts/saved/${encodeURIComponent(forget.dataset.forget)}`, { method: "DELETE" })); renderAccounts(); }
 };
 $("loginAllBtn").onclick = async () => {
   const todo = state.saved.filter((e) => !isIn(e)); let ok = 0; const failed = [];
   $("loginAllBtn").disabled = true;
+  await ensureBulkTurnstile();
   for (const email of todo) { bulkStatus(`Logging in ${email}…`); (await loginSaved(email, { quiet: true })) ? ok++ : failed.push(email); }
   $("loginAllBtn").disabled = false;
   if (!state.account && state.accounts.length) { state.account = state.accounts[0]; store.set("postAccount", state.account); loadPosts(true); }

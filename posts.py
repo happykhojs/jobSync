@@ -172,10 +172,10 @@ class Accounts:
         with self._lock:
             return [c.email for c in self._clients.values()]
 
-    def login(self, email: str, password: str) -> None:
+    def login(self, email: str, password: str, turnstile_token: str | None = None) -> None:
         ACCOUNTS_DIR.mkdir(mode=0o700, exist_ok=True)
         client = WorkowonClient(self._file(email))
-        client.login(email, password)
+        client.login(email, password, turnstile_token=turnstile_token)
         with self._lock:
             self._clients[email.lower()] = client
 
