@@ -4,7 +4,8 @@ WorkOwon JobSync: search company career sites, review/edit jobs, and post select
 
 Run:
     .venv/bin/python app.py
-then open http://127.0.0.1:5050
+then open http://localhost:5050
+(Use localhost, not 127.0.0.1 — Cloudflare Turnstile treats them as different hostnames.)
 """
 from __future__ import annotations
 
@@ -61,13 +62,16 @@ def catalog() -> list[dict]:
 
 def workowon_keys() -> set[str]:
     """Keys of jobs already on WorkOwon, so search and posting skip them: the admin external-jobs list
-    (once logged in) plus every published job from the public job search API."""
+    (when an admin is logged in) plus every published job from the public job search API."""
     with keys_lock:
         if time.time() - _workowon_keys["at"] > WORKOWON_KEYS_SECONDS:
-            try:
-                _workowon_keys.update(at=time.time(), keys=client.external_job_keys())
-            except Exception as exc:  # not logged in or API down: fall back to the local posted list
-                logging.warning("Could not load jobs already on WorkOwon: %s", exc)
+            if is_admin():
+                try:
+                    _workowon_keys.update(at=time.time(), keys=client.external_job_keys())
+                except Exception as exc:  # API down: keep the previous cache / public search keys
+                    logging.warning("Could not load jobs already on WorkOwon: %s", exc)
+            else:
+                _workowon_keys["at"] = time.time()
         keys = _workowon_keys["keys"]
     return keys | duplicates.site_job_keys()
 
@@ -160,6 +164,20 @@ def login_defaults():
     })
 
 
+def session_roles() -> list:
+    """Roles for the current dashboard session; empty if logged out or /me fails."""
+    if not client.access_token and not client.refresh_token:
+        return []
+    try:
+        return list((client.me() or {}).get("roles") or [])
+    except Exception:
+        return []
+
+
+def is_admin() -> bool:
+    return "ADMIN" in session_roles()
+
+
 @app.post("/api/login")
 def login():
     body = request.get_json(force=True)
@@ -174,9 +192,7 @@ def login():
         me = client.me()
     except AuthError as exc:
         return error(str(exc), 401)
-    if "ADMIN" not in me.get("roles", []):
-        client.logout()
-        return error("This account is not an admin.", 403)
+    # Any WorkOwon account can sign in (search, review, posts). Posting external jobs still needs ADMIN.
     return jsonify({"loggedIn": True, "email": email, "roles": me.get("roles", [])})
 
 
@@ -388,6 +404,10 @@ def skip_job(key: str):
 
 @app.post("/api/post")
 def post_jobs():
+    if not (client.access_token or client.refresh_token):
+        return error("Not logged in.", 401)
+    if not is_admin():
+        return error("Posting jobs to WorkOwon needs an admin account. Log in with an admin, or use ✍️ Post for community posts.", 403)
     items = (request.get_json(force=True) or {}).get("jobs") or []
     results = []
     for item in items:
@@ -661,5 +681,7 @@ def post_ai():
 
 if __name__ == "__main__":
     logging.getLogger("werkzeug").setLevel(logging.WARNING)
-    print("WorkOwon JobSync running at http://127.0.0.1:5050")
+    # Bind 127.0.0.1 but open via http://localhost:5050 so Turnstile's hostname matches
+    # the usual Cloudflare allowlist (localhost is allowed for Connect; 127.0.0.1 often is not).
+    print("WorkOwon JobSync running at http://localhost:5050")
     app.run(host="127.0.0.1", port=5050, debug=False, threaded=True)

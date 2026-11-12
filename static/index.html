@@ -312,7 +312,7 @@
   <form class="modal-card" id="loginForm">
     <img src="/static/logo.png" alt="" style="width:44px;height:44px;margin-bottom:8px">
     <h2>Log in to WorkOwon</h2>
-    <p>Use your admin account to post jobs.</p>
+    <p>Any WorkOwon account. Posting jobs to the site still needs an admin.</p>
     <div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="username" required></div>
     <div class="field"><label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required></div>
     <div class="field" id="turnstileField">
@@ -335,6 +335,10 @@
 <script src="/static/story.js"></script>
 <script src="/static/game.js"></script>
 <script>
+// Cloudflare Turnstile allowlists localhost for Connect; 127.0.0.1 is a different hostname.
+if (location.hostname === "127.0.0.1") {
+  location.replace(location.href.replace("://127.0.0.1", "://localhost"));
+}
 const ENUMS = {
   employmentType: ["FULL_TIME", "PART_TIME", "CONTRACT", "INTERNSHIP", "FREELANCE"],
   workplaceType: ["ONSITE", "HYBRID", "REMOTE"],
@@ -380,10 +384,14 @@ function timeAgo(iso) {
 }
 
 /* ---------- session ---------- */
+function isAdminSession() {
+  return (state.session.roles || []).includes("ADMIN");
+}
 function renderUser() {
   const s = state.session;
+  const role = s.loggedIn && isAdminSession() ? " · admin" : s.loggedIn ? " · user" : "";
   $("user").innerHTML = s.loggedIn
-    ? `<span>${esc(s.email || "Logged in")}</span><button class="btn btn-sm" id="logoutBtn">Log out</button>`
+    ? `<span>${esc(s.email || "Logged in")}${role}</span><button class="btn btn-sm" id="logoutBtn">Log out</button>`
     : `<button class="btn btn-primary btn-sm" id="loginBtn">Log in</button>`;
   if (s.loggedIn) $("logoutBtn").onclick = async () => { await api("/api/logout", { method: "POST" }); state.session = { loggedIn: false }; renderUser(); };
   else $("loginBtn").onclick = () => openLogin();
@@ -806,9 +814,20 @@ $("selectBtn").onclick = () => {
 };
 
 /* ---------- posting ---------- */
-$("postBtn").onclick = () => state.session.loggedIn ? postSelected() : openLogin(postSelected);
+$("postBtn").onclick = () => {
+  if (!state.session.loggedIn) return openLogin(postSelected);
+  if (!isAdminSession()) {
+    toast("Posting jobs needs an admin account. Log in as admin, or use ✍️ Post for community posts.");
+    return openLogin(postSelected);
+  }
+  postSelected();
+};
 
 async function postSelected() {
+  if (!isAdminSession()) {
+    toast("Posting jobs needs an admin account.");
+    return openLogin(postSelected);
+  }
   const keys = state.jobs.filter((j) => state.selected.has(j.sourceKey) && !blocked(j)).map((j) => j.sourceKey);
   if (!keys.length) return;
   $("postBtn").disabled = true; $("searchBtn").disabled = true;

@@ -528,6 +528,10 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 <script src="/static/turnstile.js"></script>
 <script>
+// Cloudflare Turnstile allowlists localhost for Connect; 127.0.0.1 is a different hostname.
+if (location.hostname === "127.0.0.1") {
+  location.replace(location.href.replace("://127.0.0.1", "://localhost"));
+}
 const $ = (id) => document.getElementById(id);
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const store = {

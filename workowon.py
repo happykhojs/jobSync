@@ -96,8 +96,8 @@ def _error_message(response: requests.Response) -> str:
     message = body.get("message") or response.text[:300] or f"HTTP {response.status_code}"
     if code == "BOT_CHECK_FAILED" or "robot" in message.lower():
         return (
-            "Cloudflare bot check failed. Complete the Turnstile challenge in the login form, "
-            "and make sure this site's hostname is allowed on WorkOwon's Turnstile widget."
+            "Cloudflare bot check failed. Complete the Turnstile challenge, use http://localhost:5050 "
+            "(not 127.0.0.1), and add this site's hostname to WorkOwon's Turnstile widget if it still fails."
         )
     return message
 
