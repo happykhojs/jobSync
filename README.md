@@ -1,6 +1,6 @@
 # WorkOwon JobSync
 
-Find the latest jobs in India from 373 company career sites and job platforms, from large employers to small startups, review and edit them, optionally polish them with AI, and post them to WorkOwon.
+Find the latest jobs in India from 391 company career sites and job platforms, from large employers to small startups, review and edit them, optionally polish them with AI, and post them to WorkOwon.
 
 ## Features
 

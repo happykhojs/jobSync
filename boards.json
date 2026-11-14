@@ -859,6 +859,16 @@
       "indiaOpenings": 68
     },
     {
+      "provider": "workable",
+      "board": "exponent-energy",
+      "companyName": "Exponent Energy",
+      "website": "https://www.exponent.energy",
+      "sector": "Energy & Utilities",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-14",
+      "indiaOpenings": 68
+    },
+    {
       "provider": "workday",
       "board": "nike/wd1/nke",
       "companyName": "Nike",
@@ -1484,6 +1494,16 @@
       "indiaOpenings": 37
     },
     {
+      "provider": "greenhouse",
+      "board": "point72",
+      "companyName": "Point72",
+      "website": "https://www.point72.com",
+      "sector": "Banking & Financial Services",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-14",
+      "indiaOpenings": 37
+    },
+    {
       "provider": "workday",
       "board": "ptc/wd1/ptc",
       "companyName": "PTC",
@@ -1876,6 +1896,16 @@
       "sector": "IT & Software",
       "companyType": "Multinational (MNC)",
       "country": "in",
+      "indiaOpenings": 26
+    },
+    {
+      "provider": "greenhouse",
+      "board": "celonis",
+      "companyName": "Celonis",
+      "website": "https://www.celonis.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-14",
       "indiaOpenings": 26
     },
     {
@@ -2416,6 +2446,16 @@
     },
     {
       "provider": "greenhouse",
+      "board": "crunchyroll",
+      "companyName": "Crunchyroll",
+      "website": "https://www.crunchyroll.com",
+      "sector": "Media & Advertising",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-14",
+      "indiaOpenings": 15
+    },
+    {
+      "provider": "greenhouse",
       "board": "commvault",
       "companyName": "Commvault",
       "website": "https://www.commvault.com",
@@ -2564,6 +2604,16 @@
       "sector": "IT & Software",
       "companyType": "Indian Startup",
       "addedOn": "2026-11-05",
+      "indiaOpenings": 13
+    },
+    {
+      "provider": "greenhouse",
+      "board": "prodigal",
+      "companyName": "Prodigal",
+      "website": "https://www.prodigaltech.com",
+      "sector": "Fintech",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-14",
       "indiaOpenings": 13
     },
     {
@@ -2865,6 +2915,16 @@
       "indiaOpenings": 9
     },
     {
+      "provider": "ashby",
+      "board": "uipath",
+      "companyName": "UiPath",
+      "website": "https://www.uipath.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-14",
+      "indiaOpenings": 9
+    },
+    {
       "provider": "workday",
       "board": "generalmotors/wd5/Careers_GM",
       "companyName": "General Motors",
@@ -3006,6 +3066,26 @@
       "sector": "IT & Software",
       "companyType": "Indian Startup",
       "addedOn": "2026-11-05",
+      "indiaOpenings": 8
+    },
+    {
+      "provider": "greenhouse",
+      "board": "plume",
+      "companyName": "Plume",
+      "website": "https://www.plume.com",
+      "sector": "Electronics & Semiconductors",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-14",
+      "indiaOpenings": 8
+    },
+    {
+      "provider": "greenhouse",
+      "board": "singlestore",
+      "companyName": "SingleStore",
+      "website": "https://www.singlestore.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-14",
       "indiaOpenings": 8
     },
     {
@@ -3215,6 +3295,26 @@
       "indiaOpenings": 6
     },
     {
+      "provider": "greenhouse",
+      "board": "deliveroo",
+      "companyName": "Deliveroo",
+      "website": "https://deliveroo.co.uk",
+      "sector": "Retail & E-commerce",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-14",
+      "indiaOpenings": 6
+    },
+    {
+      "provider": "greenhouse",
+      "board": "contentstack",
+      "companyName": "Contentstack",
+      "website": "https://www.contentstack.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-14",
+      "indiaOpenings": 6
+    },
+    {
       "provider": "ashby",
       "board": "snowflake",
       "companyName": "Snowflake",
@@ -3289,6 +3389,36 @@
       "sector": "IT & Software",
       "companyType": "Multinational (MNC)",
       "addedOn": "2026-11-11",
+      "indiaOpenings": 5
+    },
+    {
+      "provider": "ashby",
+      "board": "anyscale",
+      "companyName": "Anyscale",
+      "website": "https://www.anyscale.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-14",
+      "indiaOpenings": 5
+    },
+    {
+      "provider": "greenhouse",
+      "board": "drivewealth",
+      "companyName": "DriveWealth",
+      "website": "https://drivewealth.com",
+      "sector": "Fintech",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-14",
+      "indiaOpenings": 5
+    },
+    {
+      "provider": "greenhouse",
+      "board": "fastly",
+      "companyName": "Fastly",
+      "website": "https://www.fastly.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-14",
       "indiaOpenings": 5
     },
     {
@@ -3444,6 +3574,16 @@
     },
     {
       "provider": "greenhouse",
+      "board": "launchdarkly",
+      "companyName": "LaunchDarkly",
+      "website": "https://launchdarkly.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-14",
+      "indiaOpenings": 4
+    },
+    {
+      "provider": "greenhouse",
       "board": "yugabyte",
       "companyName": "Yugabyte",
       "website": "https://www.yugabyte.com",
@@ -3593,6 +3733,16 @@
       "indiaOpenings": 2
     },
     {
+      "provider": "ashby",
+      "board": "temporal",
+      "companyName": "Temporal",
+      "website": "https://temporal.io",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-14",
+      "indiaOpenings": 2
+    },
+    {
       "provider": "greenhouse",
       "board": "duolingo",
       "companyName": "Duolingo",
@@ -3710,6 +3860,36 @@
       "sector": "IT & Software",
       "companyType": "Indian Startup",
       "addedOn": "2026-11-11",
+      "indiaOpenings": 1
+    },
+    {
+      "provider": "greenhouse",
+      "board": "scaleai",
+      "companyName": "Scale AI",
+      "website": "https://scale.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-14",
+      "indiaOpenings": 1
+    },
+    {
+      "provider": "greenhouse",
+      "board": "mesh",
+      "companyName": "Mesh",
+      "website": "https://meshpayments.com",
+      "sector": "Fintech",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-14",
+      "indiaOpenings": 1
+    },
+    {
+      "provider": "ashby",
+      "board": "amplitude",
+      "companyName": "Amplitude",
+      "website": "https://amplitude.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-14",
       "indiaOpenings": 1
     },
     {
