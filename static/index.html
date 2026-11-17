@@ -229,7 +229,7 @@
         </div></div>
       <div class="field"><label for="posted">Posted within</label><select id="posted"></select></div>
       <div class="field"><label for="sort">Sort by</label><select id="sort"></select></div>
-      <div class="field"><label for="count">Jobs to fetch</label><input id="count" type="number" min="1" max="50" value="10"></div>
+      <div class="field"><label for="count">Jobs to fetch</label><input id="count" type="number" min="1" max="100" value="10"></div>
       <button class="btn btn-primary go" id="searchBtn" type="submit">Search jobs</button>
     </div>
     <div class="filters collapsed" id="filters">
@@ -516,7 +516,7 @@ function criteria() {
     newCompaniesOnly: $("newOnly").checked,
     startupsOnly: $("startupsOnly").checked,
     smallCompaniesOnly: $("smallOnly").checked,
-    count: Math.max(1, Math.min(50, parseInt($("count").value) || 10)),
+    count: Math.max(1, Math.min(100, parseInt($("count").value) || 10)),
     ...JSON.parse(JSON.stringify(state.filters)),
   };
 }

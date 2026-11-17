@@ -258,7 +258,7 @@ def search(
     progress(done, total) is called as company sites answer, so the dashboard can show how far along it is."""
     seen = seen or set()
     progress = progress or (lambda done, total: None)
-    count = max(1, min(int(criteria.get("count") or 10), 50))
+    count = max(1, min(int(criteria.get("count") or 10), 100))
     sectors = set(criteria.get("sectors") or [])
     types = set(criteria.get("companyTypes") or [])
     companies = set(criteria.get("companies") or [])
