@@ -8,6 +8,7 @@ AI is opt-in: it only runs when the user clicks a style or sends a prompt on the
 """
 from __future__ import annotations
 
+import base64
 import csv
 import hashlib
 import io
@@ -109,11 +110,26 @@ def clean_hashtags(tags: list) -> list[str]:
     return out[:10]
 
 
-def write_post(action: str, style: str, prompt: str, post: dict) -> dict:
-    """action "create" writes a new post from the prompt; "enhance" rewrites the current post."""
+def _gemini_key() -> str:
     api_key = os.environ.get("GEMINI_API_KEY", "").strip()
     if not api_key:
         raise RuntimeError("GEMINI_API_KEY is not set in .env")
+    return api_key
+
+
+def _parse_post_json(data: dict) -> dict:
+    out = json.loads(data["candidates"][0]["content"]["parts"][0]["text"])
+    return {
+        "title": (out.get("title") or "").strip()[:MAX_TITLE_CHARS],
+        "content": sanitize_post_html(out.get("content") or "")[:MAX_CONTENT_CHARS],
+        "hashtags": clean_hashtags(out.get("hashtags")),
+        "pollOptions": [o.strip()[:60] for o in out.get("pollOptions") or [] if o.strip()][:10],
+    }
+
+
+def write_post(action: str, style: str, prompt: str, post: dict) -> dict:
+    """action "create" writes a new post from the prompt; "enhance" rewrites the current post."""
+    api_key = _gemini_key()
     label, guide = STYLES.get(style, (None, None))
     request_parts = [f"Post type: {post.get('type') or 'TEXT'}"]
     if label:
@@ -143,13 +159,57 @@ def write_post(action: str, style: str, prompt: str, post: dict) -> dict:
     data, model = gemini_generate(body, api_key, os.environ.get("GEMINI_MODEL", "").strip() or DEFAULT_MODEL, TIMEOUT)
     usage = data.get("usageMetadata") or {}
     logging.info("Gemini (%s) wrote a post (%s/%s, tokens in=%s out=%s)", model, action, style, usage.get("promptTokenCount"), usage.get("candidatesTokenCount"))
-    out = json.loads(data["candidates"][0]["content"]["parts"][0]["text"])
-    return {
-        "title": (out.get("title") or "").strip()[:MAX_TITLE_CHARS],
-        "content": sanitize_post_html(out.get("content") or "")[:MAX_CONTENT_CHARS],
-        "hashtags": clean_hashtags(out.get("hashtags")),
-        "pollOptions": [o.strip()[:60] for o in out.get("pollOptions") or [] if o.strip()][:10],
+    return _parse_post_json(data)
+
+
+SCREENSHOT_INSTRUCTIONS = """You read a screenshot of a social / professional post (LinkedIn, Twitter/X, Instagram, WhatsApp, etc.).
+Return JSON with: title, content, hashtags, pollOptions.
+- Extract the post BODY text only. Ignore UI chrome: like/comment/share bars, follower counts, timestamps, "Follow", menus, ads, suggested posts, and the author's name/headline unless they are clearly part of the post text.
+- content is HTML using ONLY <p>, <strong>, <em>, <ul>, <ol>, <li>, <br>. No other tags, no attributes, no markdown.
+  Keep the author's wording and line breaks as closely as possible. Each paragraph is its own <p>. Lists stay as lists.
+- Do NOT rewrite, improve, translate, or invent text. If something is unreadable, omit it; never guess.
+- hashtags: any hashtags visible in the post body (lowercase, no '#'). Empty list if none.
+- title: empty string unless the screenshot clearly shows a separate article headline.
+- pollOptions: empty list unless the screenshot is clearly a poll with visible options (then copy those option labels).
+- Keep the language of the screenshot. content under 2500 characters."""
+
+# Screenshots over this size are rejected before calling Gemini.
+MAX_SCREENSHOT_BYTES = 8 * 1024 * 1024
+ALLOWED_SCREENSHOT_TYPES = {"image/jpeg", "image/jpg", "image/png", "image/webp", "image/gif"}
+
+
+def extract_post_from_image(image_bytes: bytes, mime_type: str) -> dict:
+    """OCR a screenshot with Gemini vision and return title/content/hashtags for the editor."""
+    api_key = _gemini_key()
+    mime = (mime_type or "image/jpeg").split(";")[0].strip().lower()
+    if mime == "image/jpg":
+        mime = "image/jpeg"
+    if mime not in ALLOWED_SCREENSHOT_TYPES:
+        raise ValueError("Upload a PNG, JPEG, WebP or GIF screenshot.")
+    if not image_bytes:
+        raise ValueError("Empty image.")
+    if len(image_bytes) > MAX_SCREENSHOT_BYTES:
+        raise ValueError("Screenshot is too large (8 MB max). Try a smaller crop.")
+    body = {
+        "systemInstruction": {"parts": [{"text": SCREENSHOT_INSTRUCTIONS}]},
+        "contents": [{"role": "user", "parts": [
+            {"text": "Extract the post text from this screenshot into the JSON schema."},
+            {"inline_data": {"mime_type": mime, "data": base64.b64encode(image_bytes).decode("ascii")}},
+        ]}],
+        "generationConfig": {
+            "temperature": 0.1,
+            "responseMimeType": "application/json",
+            "responseSchema": RESPONSE_SCHEMA,
+            "thinkingConfig": {"thinkingLevel": "minimal"},
+        },
     }
+    data, model = gemini_generate(body, api_key, os.environ.get("GEMINI_MODEL", "").strip() or DEFAULT_MODEL, TIMEOUT)
+    usage = data.get("usageMetadata") or {}
+    logging.info("Gemini (%s) extracted post from screenshot (tokens in=%s out=%s)", model, usage.get("promptTokenCount"), usage.get("candidatesTokenCount"))
+    result = _parse_post_json(data)
+    if not (result["content"] or "").strip():
+        raise RuntimeError("Couldn't find post text in that image. Try a clearer screenshot of the post body.")
+    return result
 
 
 class Accounts:

@@ -180,6 +180,21 @@
   .style:disabled { opacity: .5; cursor: wait; }
   .human-box { display: flex; align-items: center; gap: 12px; background: linear-gradient(135deg, #ecf8ee, #e6f3f7); border: 1px solid #cfe9d6; border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; }
   .human-box p { margin: 0; font-size: 12px; color: #285c37; flex: 1; }
+  .shot-box { border: 1px solid #ffc7b0; background: linear-gradient(180deg, #fff8f4, #fff); border-radius: 12px; padding: 12px; margin-bottom: 16px; }
+  .shot-box > p { margin: 0 0 10px; font-size: 12px; color: #8a4a2a; }
+  .shot-drop { border: 1.5px dashed #ffc7b0; border-radius: 10px; padding: 12px; display: flex; align-items: center; gap: 10px;
+    background: var(--orange-soft); cursor: pointer; transition: border-color .15s, background-color .15s; }
+  .shot-drop:hover, .shot-drop.drag { border-color: var(--orange); background: #ffe4d6; }
+  .shot-drop .dz-icon { width: 36px; height: 36px; font-size: 18px; }
+  .shot-drop .dz-text b { font-size: 13px; }
+  .shot-preview { display: none; margin-top: 10px; position: relative; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); background: #111; max-height: 160px; }
+  .shot-preview.on { display: block; }
+  .shot-preview img { width: 100%; max-height: 160px; object-fit: contain; display: block; background: #1a1a1b; }
+  .shot-preview .x { position: absolute; top: 6px; right: 6px; border: 0; border-radius: 999px; width: 26px; height: 26px;
+    background: rgba(0,0,0,.65); color: #fff; cursor: pointer; }
+  .shot-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .enhance-row { display: none; flex-wrap: wrap; gap: 8px; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #ffc7b0; }
+  .enhance-row.on { display: flex; }
   .ai-status { font-size: 13px; color: var(--muted); min-height: 20px; margin-top: 12px; display: flex; align-items: center; gap: 8px; }
   .ai-status.busy::before { content: ""; width: 14px; height: 14px; border-radius: 50%; border: 2px solid #ffc7b0; border-top-color: var(--orange); flex: none; animation: spin .7s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
@@ -409,6 +424,25 @@
   <div class="side">
     <section class="card ai">
       <div class="card-head"><div><span class="h-icon ai">✨</span><h2>Write with AI</h2></div></div>
+      <div class="shot-box">
+        <p><b>From screenshot</b>: upload a pic of a LinkedIn (or other) post — we read the text into the editor, then you can enhance it.</p>
+        <div class="shot-drop" id="shotDrop" role="button" tabindex="0" aria-label="Upload a post screenshot">
+          <span class="dz-icon">📷</span>
+          <span class="dz-text"><b>Drop a screenshot here</b><span class="muted small"> or click to choose · PNG / JPEG / WebP</span></span>
+          <input type="file" id="shotInput" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+        </div>
+        <div class="shot-preview" id="shotPreview">
+          <img id="shotImg" alt="Screenshot preview">
+          <button type="button" class="x" id="shotClear" aria-label="Clear screenshot">×</button>
+        </div>
+        <div class="shot-actions">
+          <button type="button" class="btn btn-sm btn-ai" id="shotAnalyzeBtn" disabled title="Read the text from the screenshot into the editor">Analyse &amp; insert text</button>
+        </div>
+        <div class="enhance-row" id="enhanceRow">
+          <button type="button" class="btn btn-sm btn-ai" id="enhanceBtn" title="Improve the post that was filled from the screenshot">✨ Enhance this post</button>
+          <button type="button" class="btn btn-sm btn-human" id="enhanceHumanBtn" title="Make the extracted post sound human, not AI">Anti-AI polish</button>
+        </div>
+      </div>
       <div class="human-box">
         <p><b>Anti-AI</b>: rewrites the post so it reads like a real person wrote it. No AI buzzwords, dashes or robotic structure.</p>
         <button type="button" class="btn btn-sm btn-human" id="humanBtn">Anti-AI</button>
@@ -1154,7 +1188,8 @@ $("preview").onclick = (e) => { const z = e.target.closest("[data-zoom]"); if (z
 
 /* ---------- AI ---------- */
 function setAiBusy(busy, text = "") {
-  document.querySelectorAll(".style, #createBtn, #editAiBtn, #humanBtn").forEach((b) => (b.disabled = busy));
+  document.querySelectorAll(".style, #createBtn, #editAiBtn, #humanBtn, #shotAnalyzeBtn, #enhanceBtn, #enhanceHumanBtn").forEach((b) => (b.disabled = busy));
+  if (!busy) $("shotAnalyzeBtn").disabled = !shotFile;
   $("aiStatus").classList.remove("err"); $("aiStatus").classList.toggle("busy", busy); $("aiStatus").textContent = text;
   document.querySelectorAll(".style").forEach((b) => b.classList.toggle("on", busy && b.dataset.s === busyStyle));
 }
@@ -1192,10 +1227,92 @@ $("styles").onclick = (e) => {
 $("humanBtn").onclick = () => runAi(!textLength($("content").innerHTML) && $("prompt").value.trim() ? "create" : "enhance", "human");
 $("createBtn").onclick = () => runAi("create", selectedStyle);
 $("editAiBtn").onclick = () => runAi("enhance", "");
+$("enhanceBtn").onclick = () => runAi("enhance", selectedStyle || "professional");
+$("enhanceHumanBtn").onclick = () => runAi("enhance", "human");
 $("undoBtn").onclick = () => {
   const prev = state.undo.pop(); if (prev) { fillForm(prev, true); saveDraft(); }
   $("undoBtn").hidden = !state.undo.length; $("aiStatus").textContent = "Undone.";
 };
+
+/* ---------- screenshot → text ---------- */
+let shotFile = null, shotUrl = "";
+function clearShot() {
+  shotFile = null;
+  if (shotUrl) URL.revokeObjectURL(shotUrl);
+  shotUrl = "";
+  $("shotInput").value = "";
+  $("shotImg").removeAttribute("src");
+  $("shotPreview").classList.remove("on");
+  $("shotAnalyzeBtn").disabled = true;
+  $("enhanceRow").classList.remove("on");
+}
+function setShot(file) {
+  if (!file || !file.type.startsWith("image/")) { toast("Pick an image screenshot."); return; }
+  if (shotUrl) URL.revokeObjectURL(shotUrl);
+  shotFile = file;
+  shotUrl = URL.createObjectURL(file);
+  $("shotImg").src = shotUrl;
+  $("shotPreview").classList.add("on");
+  $("shotAnalyzeBtn").disabled = false;
+  $("enhanceRow").classList.remove("on");
+}
+/** Shrink large screenshots so Gemini stays fast and under size limits. */
+function compressShot(file, maxSide = 1600, quality = 0.85) {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width: w, height: h } = img;
+      const scale = Math.min(1, maxSide / Math.max(w, h));
+      w = Math.round(w * scale); h = Math.round(h * scale);
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      canvas.toBlob((blob) => {
+        if (!blob) return reject(new Error("Could not process the image."));
+        resolve(new File([blob], (file.name || "screenshot").replace(/\.\w+$/, "") + ".jpg", { type: "image/jpeg" }));
+      }, "image/jpeg", quality);
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("Could not read that image.")); };
+    img.src = url;
+  });
+}
+async function analyzeShot() {
+  if (!shotFile) { toast("Choose a screenshot first."); return; }
+  if (!state.options.aiEnabled) { $("aiStatus").classList.add("err"); $("aiStatus").textContent = "Add GEMINI_API_KEY to .env to use AI."; return; }
+  setAiBusy(true, "Reading text from screenshot…");
+  try {
+    const prepared = await compressShot(shotFile);
+    const fd = new FormData();
+    fd.append("file", prepared, prepared.name);
+    const out = await api("/api/posts/ai/from-screenshot", { method: "POST", body: fd });
+    const form = readForm();
+    state.undo.push(form); $("undoBtn").hidden = false;
+    fillForm({
+      ...form,
+      type: out.pollOptions?.length ? "POLL" : form.type,
+      title: out.title || form.title,
+      content: out.content,
+      hashtags: out.hashtags?.length ? out.hashtags : form.hashtags,
+      poll: { ...form.poll, options: out.pollOptions?.length ? out.pollOptions : form.poll.options },
+    }, true);
+    saveDraft();
+    $("enhanceRow").classList.add("on");
+    setAiBusy(false, "Text inserted from screenshot. Use Enhance or Anti-AI polish, then post.");
+    toast("Post text filled from screenshot");
+  } catch (err) {
+    setAiBusy(false); $("aiStatus").classList.add("err"); $("aiStatus").textContent = err.message;
+  }
+}
+$("shotDrop").onclick = () => $("shotInput").click();
+$("shotDrop").onkeydown = (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); $("shotInput").click(); } };
+$("shotInput").onchange = () => { if ($("shotInput").files[0]) setShot($("shotInput").files[0]); };
+["dragenter", "dragover"].forEach((ev) => $("shotDrop").addEventListener(ev, (e) => { e.preventDefault(); $("shotDrop").classList.add("drag"); }));
+["dragleave", "drop"].forEach((ev) => $("shotDrop").addEventListener(ev, (e) => { e.preventDefault(); $("shotDrop").classList.remove("drag"); }));
+$("shotDrop").addEventListener("drop", (e) => { const f = e.dataTransfer?.files?.[0]; if (f) setShot(f); });
+$("shotClear").onclick = (e) => { e.stopPropagation(); clearShot(); };
+$("shotAnalyzeBtn").onclick = analyzeShot;
 
 /* ---------- my posts ---------- */
 async function loadPosts(reset) {

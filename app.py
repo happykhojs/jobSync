@@ -31,7 +31,7 @@ from htmlfmt import sanitize_html
 from job_scraper import release_memory
 from enrich import SKILLS
 from search import options, search, suggest
-from posts import STYLES, Accounts, SavedLogins, clean_hashtags, parse_logins, sanitize_post_html, write_post
+from posts import STYLES, Accounts, SavedLogins, clean_hashtags, extract_post_from_image, parse_logins, sanitize_post_html, write_post
 from post_jobs import ENV_FILE, JOBS_FILE, POSTED_FILE, build_payload, improve_payload, load_env, load_json
 from workowon import AuthError, WorkowonClient, record_keys
 
@@ -676,6 +676,23 @@ def post_ai():
         return jsonify(write_post(action, body.get("style") or "", prompt, post))
     except Exception as exc:
         logging.warning("AI post failed: %s", exc)
+        return error(str(exc), 503 if getattr(exc, "busy", False) else 502)
+
+
+@app.post("/api/posts/ai/from-screenshot")
+def post_ai_from_screenshot():
+    """Read text from a post screenshot and return title/content/hashtags for the editor."""
+    file = request.files.get("file") or request.files.get("image")
+    if not file:
+        return error("Choose a screenshot image first.")
+    mime = file.mimetype or "image/jpeg"
+    data = file.read()
+    try:
+        return jsonify(extract_post_from_image(data, mime))
+    except ValueError as exc:
+        return error(str(exc))
+    except Exception as exc:
+        logging.warning("Screenshot OCR failed: %s", exc)
         return error(str(exc), 503 if getattr(exc, "busy", False) else 502)
 
 
