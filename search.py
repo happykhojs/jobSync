@@ -140,9 +140,25 @@ def is_small_company(board: dict) -> bool:
     return company_size(board) == "Small (under 30 openings)"
 
 
+# Headcount band for early-stage / boutique teams (set on boards as employeesApprox).
+SMALL_TEAM_EMP_MIN, SMALL_TEAM_EMP_MAX = 10, 20
+
+
+def is_small_team(board: dict) -> bool:
+    """Companies with about 10–20 people (employeesApprox), still hiring."""
+    n = board.get("employeesApprox")
+    if n is None:
+        return False
+    try:
+        return SMALL_TEAM_EMP_MIN <= int(n) <= SMALL_TEAM_EMP_MAX
+    except (TypeError, ValueError):
+        return False
+
+
 def options(catalog: list[dict]) -> dict:
     startups = [b for b in catalog if is_startup(b)]
     small = [b for b in catalog if is_small_company(b)]
+    small_teams = [b for b in catalog if is_small_team(b)]
     return {
         "locations": list(LOCATIONS),
         "sectors": sorted({b.get("sector") for b in catalog if b.get("sector")}),
@@ -160,6 +176,10 @@ def options(catalog: list[dict]) -> dict:
         # Dedicated Smaller companies filter: under 30 India openings, biggest first.
         "smallCompanies": [b["companyName"] for b in sorted(small, key=lambda b: b.get("indiaOpenings") or 0, reverse=True)],
         "smallCompanyOpenings": {b["companyName"]: b.get("indiaOpenings") or 0 for b in small},
+        # Small teams by headcount (~10–20 people), not opening count.
+        "smallTeams": [b["companyName"] for b in sorted(small_teams, key=lambda b: (b.get("employeesApprox") or 0, -(b.get("indiaOpenings") or 0)))],
+        "smallTeamOpenings": {b["companyName"]: b.get("indiaOpenings") or 0 for b in small_teams},
+        "smallTeamEmployees": {b["companyName"]: b.get("employeesApprox") for b in small_teams},
         "experienceLevels": EXPERIENCE_LEVELS,
         "experience": list(EXPERIENCE_BANDS),
         "employmentTypes": EMPLOYMENT,
@@ -258,19 +278,21 @@ def search(
     progress(done, total) is called as company sites answer, so the dashboard can show how far along it is."""
     seen = seen or set()
     progress = progress or (lambda done, total: None)
-    count = max(1, min(int(criteria.get("count") or 10), 100))
+    count = max(1, min(int(criteria.get("count") or 200), 250))
     sectors = set(criteria.get("sectors") or [])
     types = set(criteria.get("companyTypes") or [])
     companies = set(criteria.get("companies") or [])
     startups = set(criteria.get("startups") or [])
     small_companies = set(criteria.get("smallCompanies") or [])
-    # Company picker sections (Companies / Startups / Smaller) all select employers; either match is enough.
-    wanted_companies = companies | startups | small_companies
+    small_teams = set(criteria.get("smallTeams") or [])
+    # Company picker sections all select employers; either match is enough.
+    wanted_companies = companies | startups | small_companies | small_teams
     sources = set(criteria.get("sources") or []) & set(SOURCES)
     sizes = set(criteria.get("companySizes") or []) & set(COMPANY_SIZES)
     new_only = bool(criteria.get("newCompaniesOnly"))
     startups_only = bool(criteria.get("startupsOnly"))
     small_only = bool(criteria.get("smallCompaniesOnly"))
+    small_teams_only = bool(criteria.get("smallTeamsOnly"))
     # Both or neither role type selected means any role.
     role_types = set(criteria.get("roleTypes") or []) & set(ROLE_TYPES)
     tech_only = role_types == {"Tech roles"}
@@ -285,6 +307,7 @@ def search(
         and (not new_only or is_new_company(b))
         and (not startups_only or is_startup(b))
         and (not small_only or is_small_company(b))
+        and (not small_teams_only or is_small_team(b))
     ]
 
     loc_re = _location_regex(criteria.get("locations") or [])

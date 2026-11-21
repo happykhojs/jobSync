@@ -385,6 +385,17 @@
       "indiaOpenings": 158
     },
     {
+      "provider": "workable",
+      "board": "apna",
+      "companyName": "Apna",
+      "website": "https://apna.co",
+      "sector": "Education & HR Tech",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-05",
+      "indiaOpenings": 158,
+      "employeesApprox": 80
+    },
+    {
       "provider": "workday",
       "board": "dxctechnology/wd1/DXCJobs",
       "companyName": "DXC Technology",
@@ -414,16 +425,6 @@
       "country": "in",
       "indiaOpenings": 155,
       "addedOn": "2026-10-27"
-    },
-    {
-      "provider": "workable",
-      "board": "apna",
-      "companyName": "Apna",
-      "website": "https://apna.co",
-      "sector": "Education & HR Tech",
-      "companyType": "Indian Startup",
-      "addedOn": "2026-11-05",
-      "indiaOpenings": 154
     },
     {
       "provider": "workday",
@@ -838,6 +839,17 @@
       "indiaOpenings": 70
     },
     {
+      "provider": "workable",
+      "board": "exponent-energy",
+      "companyName": "Exponent Energy",
+      "website": "https://www.exponent.energy",
+      "sector": "Energy & Utilities",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-14",
+      "indiaOpenings": 70,
+      "employeesApprox": 40
+    },
+    {
       "provider": "workday",
       "board": "crowe/wd12/External_Careers",
       "companyName": "Crowe",
@@ -856,16 +868,6 @@
       "sector": "Fintech",
       "companyType": "Multinational (MNC)",
       "addedOn": "2026-11-11",
-      "indiaOpenings": 68
-    },
-    {
-      "provider": "workable",
-      "board": "exponent-energy",
-      "companyName": "Exponent Energy",
-      "website": "https://www.exponent.energy",
-      "sector": "Energy & Utilities",
-      "companyType": "Indian Startup",
-      "addedOn": "2026-11-14",
       "indiaOpenings": 68
     },
     {
@@ -1064,15 +1066,6 @@
       "indiaOpenings": 55
     },
     {
-      "provider": "lever",
-      "board": "meesho",
-      "companyName": "Meesho",
-      "website": "https://www.meesho.com",
-      "sector": "Retail & E-commerce",
-      "companyType": "Indian Startup",
-      "indiaOpenings": 54
-    },
-    {
       "provider": "workday",
       "board": "carrier/wd5/jobs",
       "companyName": "Carrier",
@@ -1144,15 +1137,6 @@
       "indiaOpenings": 51
     },
     {
-      "provider": "lever",
-      "board": "hevodata",
-      "companyName": "Hevo Data",
-      "website": "https://hevodata.com",
-      "sector": "IT & Software",
-      "companyType": "Indian Startup",
-      "indiaOpenings": 51
-    },
-    {
       "provider": "workday",
       "board": "bristolmyerssquibb/wd5/BMS",
       "companyName": "Bristol Myers Squibb",
@@ -1211,6 +1195,16 @@
       "addedOn": "2026-11-03",
       "country": "in",
       "indiaOpenings": 49
+    },
+    {
+      "provider": "lever",
+      "board": "meesho",
+      "companyName": "Meesho",
+      "website": "https://www.meesho.com",
+      "sector": "Retail & E-commerce",
+      "companyType": "Indian Startup",
+      "indiaOpenings": 48,
+      "employeesApprox": 100
     },
     {
       "provider": "workday",
@@ -1314,15 +1308,6 @@
       "addedOn": "2026-10-27"
     },
     {
-      "provider": "ashby",
-      "board": "sarvam",
-      "companyName": "Sarvam AI",
-      "website": "https://www.sarvam.ai",
-      "sector": "IT & Software",
-      "companyType": "Indian Startup",
-      "indiaOpenings": 44
-    },
-    {
       "provider": "workday",
       "board": "guidewire/wd5/external",
       "companyName": "Guidewire",
@@ -1331,6 +1316,16 @@
       "companyType": "Multinational (MNC)",
       "country": "in",
       "indiaOpenings": 44
+    },
+    {
+      "provider": "ashby",
+      "board": "sarvam",
+      "companyName": "Sarvam AI",
+      "website": "https://www.sarvam.ai",
+      "sector": "IT & Software",
+      "companyType": "Indian Startup",
+      "indiaOpenings": 43,
+      "employeesApprox": 45
     },
     {
       "provider": "workday",
@@ -1371,6 +1366,16 @@
       "companyType": "Multinational (MNC)",
       "country": "in",
       "indiaOpenings": 42
+    },
+    {
+      "provider": "greenhouse",
+      "board": "sigmoid",
+      "companyName": "Sigmoid",
+      "website": "https://www.sigmoid.com",
+      "sector": "IT & Software",
+      "companyType": "Indian Startup",
+      "indiaOpenings": 42,
+      "employeesApprox": 50
     },
     {
       "provider": "smartrecruiters",
@@ -1421,6 +1426,16 @@
       "companyType": "Multinational (MNC)",
       "country": "in",
       "indiaOpenings": 40
+    },
+    {
+      "provider": "lever",
+      "board": "hevodata",
+      "companyName": "Hevo Data",
+      "website": "https://hevodata.com",
+      "sector": "IT & Software",
+      "companyType": "Indian Startup",
+      "indiaOpenings": 39,
+      "employeesApprox": 40
     },
     {
       "provider": "workday",
@@ -1521,15 +1536,6 @@
       "sector": "Media & Advertising",
       "companyType": "Multinational (MNC)",
       "country": "in",
-      "indiaOpenings": 36
-    },
-    {
-      "provider": "greenhouse",
-      "board": "sigmoid",
-      "companyName": "Sigmoid",
-      "website": "https://www.sigmoid.com",
-      "sector": "IT & Software",
-      "companyType": "Indian Startup",
       "indiaOpenings": 36
     },
     {
@@ -1744,6 +1750,16 @@
       "companyType": "Multinational (MNC)",
       "country": "in",
       "indiaOpenings": 29
+    },
+    {
+      "provider": "lever",
+      "board": "zeta",
+      "companyName": "Zeta",
+      "website": "https://www.zeta.tech",
+      "sector": "Fintech",
+      "companyType": "Indian Startup",
+      "indiaOpenings": 29,
+      "employeesApprox": 80
     },
     {
       "provider": "greenhouse",
@@ -1983,13 +1999,14 @@
       "indiaOpenings": 25
     },
     {
-      "provider": "lever",
-      "board": "zeta",
-      "companyName": "Zeta",
-      "website": "https://www.zeta.tech",
+      "provider": "greenhouse",
+      "board": "razorpaysoftwareprivatelimited",
+      "companyName": "Razorpay",
+      "website": "https://razorpay.com",
       "sector": "Fintech",
       "companyType": "Indian Startup",
-      "indiaOpenings": 24
+      "indiaOpenings": 25,
+      "employeesApprox": 100
     },
     {
       "provider": "lever",
@@ -2012,15 +2029,6 @@
       "addedOn": "2026-11-05",
       "country": "in",
       "indiaOpenings": 24
-    },
-    {
-      "provider": "greenhouse",
-      "board": "razorpaysoftwareprivatelimited",
-      "companyName": "Razorpay",
-      "website": "https://razorpay.com",
-      "sector": "Fintech",
-      "companyType": "Indian Startup",
-      "indiaOpenings": 23
     },
     {
       "provider": "greenhouse",
@@ -2090,16 +2098,8 @@
       "sector": "Automotive",
       "companyType": "Indian Startup",
       "addedOn": "2026-11-05",
-      "indiaOpenings": 21
-    },
-    {
-      "provider": "greenhouse",
-      "board": "glance",
-      "companyName": "Glance",
-      "website": "https://glance.com",
-      "sector": "Media & Advertising",
-      "companyType": "Indian Startup",
-      "indiaOpenings": 20
+      "indiaOpenings": 21,
+      "employeesApprox": 25
     },
     {
       "provider": "greenhouse",
@@ -2163,16 +2163,6 @@
       "country": "in",
       "indiaOpenings": 20,
       "addedOn": "2026-10-27"
-    },
-    {
-      "provider": "workable",
-      "board": "deepsource",
-      "companyName": "DeepSource",
-      "website": "https://deepsource.com",
-      "sector": "IT & Software",
-      "companyType": "Indian Startup",
-      "addedOn": "2026-11-11",
-      "indiaOpenings": 20
     },
     {
       "provider": "workday",
@@ -2256,40 +2246,12 @@
       "indiaOpenings": 17
     },
     {
-      "provider": "lever",
-      "board": "fampay",
-      "companyName": "FamPay",
-      "website": "https://famapp.in",
-      "sector": "Fintech",
-      "companyType": "Indian Startup",
-      "indiaOpenings": 17
-    },
-    {
-      "provider": "lever",
-      "board": "mindtickle",
-      "companyName": "Mindtickle",
-      "website": "https://www.mindtickle.com",
-      "sector": "IT & Software",
-      "companyType": "Indian Startup",
-      "indiaOpenings": 17
-    },
-    {
       "provider": "greenhouse",
       "board": "truecaller",
       "companyName": "Truecaller",
       "website": "https://www.truecaller.com",
       "sector": "IT & Software",
       "companyType": "Multinational (MNC)",
-      "addedOn": "2026-11-05",
-      "indiaOpenings": 17
-    },
-    {
-      "provider": "ashby",
-      "board": "uptimeai",
-      "companyName": "Uptime AI",
-      "website": "https://uptimeai.com",
-      "sector": "IT & Software",
-      "companyType": "Indian Startup",
       "addedOn": "2026-11-05",
       "indiaOpenings": 17
     },
@@ -2303,6 +2265,16 @@
       "addedOn": "2026-11-05",
       "country": "in",
       "indiaOpenings": 17
+    },
+    {
+      "provider": "lever",
+      "board": "mindtickle",
+      "companyName": "Mindtickle",
+      "website": "https://www.mindtickle.com",
+      "sector": "IT & Software",
+      "companyType": "Indian Startup",
+      "indiaOpenings": 16,
+      "employeesApprox": 50
     },
     {
       "provider": "workday",
@@ -2376,14 +2348,15 @@
       "indiaOpenings": 16
     },
     {
-      "provider": "ashby",
-      "board": "plotlineso",
-      "companyName": "Plotline",
-      "website": "https://www.plotline.so",
+      "provider": "lever",
+      "board": "acceldata",
+      "companyName": "Acceldata",
+      "website": "https://www.acceldata.io",
       "sector": "IT & Software",
       "companyType": "Indian Startup",
       "addedOn": "2026-11-05",
-      "indiaOpenings": 16
+      "indiaOpenings": 16,
+      "employeesApprox": 40
     },
     {
       "provider": "workday",
@@ -2432,7 +2405,8 @@
       "sector": "IT & Software",
       "companyType": "Indian Startup",
       "addedOn": "2026-11-05",
-      "indiaOpenings": 15
+      "indiaOpenings": 15,
+      "employeesApprox": 40
     },
     {
       "provider": "lever",
@@ -2453,6 +2427,26 @@
       "companyType": "Multinational (MNC)",
       "addedOn": "2026-11-14",
       "indiaOpenings": 15
+    },
+    {
+      "provider": "greenhouse",
+      "board": "glance",
+      "companyName": "Glance",
+      "website": "https://glance.com",
+      "sector": "Media & Advertising",
+      "companyType": "Indian Startup",
+      "indiaOpenings": 14,
+      "employeesApprox": 50
+    },
+    {
+      "provider": "lever",
+      "board": "fampay",
+      "companyName": "FamPay",
+      "website": "https://famapp.in",
+      "sector": "Fintech",
+      "companyType": "Indian Startup",
+      "indiaOpenings": 14,
+      "employeesApprox": 30
     },
     {
       "provider": "greenhouse",
@@ -2506,16 +2500,6 @@
       "indiaOpenings": 14
     },
     {
-      "provider": "lever",
-      "board": "acceldata",
-      "companyName": "Acceldata",
-      "website": "https://www.acceldata.io",
-      "sector": "IT & Software",
-      "companyType": "Indian Startup",
-      "addedOn": "2026-11-05",
-      "indiaOpenings": 14
-    },
-    {
       "provider": "workday",
       "board": "trafigura/wd3/Puma_Energy_Careers",
       "companyName": "Puma Energy",
@@ -2525,6 +2509,39 @@
       "addedOn": "2026-11-05",
       "country": "in",
       "indiaOpenings": 14
+    },
+    {
+      "provider": "greenhouse",
+      "board": "cloudsek",
+      "companyName": "CloudSEK",
+      "website": "https://www.cloudsek.com",
+      "sector": "IT & Software",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-05",
+      "indiaOpenings": 14,
+      "employeesApprox": 40
+    },
+    {
+      "provider": "ashby",
+      "board": "uptimeai",
+      "companyName": "Uptime AI",
+      "website": "https://uptimeai.com",
+      "sector": "IT & Software",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-05",
+      "indiaOpenings": 13,
+      "employeesApprox": 25
+    },
+    {
+      "provider": "ashby",
+      "board": "plotlineso",
+      "companyName": "Plotline",
+      "website": "https://www.plotline.so",
+      "sector": "IT & Software",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-05",
+      "indiaOpenings": 13,
+      "employeesApprox": 20
     },
     {
       "provider": "smartrecruiters",
@@ -2587,16 +2604,6 @@
       "indiaOpenings": 13
     },
     {
-      "provider": "greenhouse",
-      "board": "cloudsek",
-      "companyName": "CloudSEK",
-      "website": "https://www.cloudsek.com",
-      "sector": "IT & Software",
-      "companyType": "Indian Startup",
-      "addedOn": "2026-11-05",
-      "indiaOpenings": 13
-    },
-    {
       "provider": "ashby",
       "board": "level-ai",
       "companyName": "Level AI",
@@ -2604,7 +2611,8 @@
       "sector": "IT & Software",
       "companyType": "Indian Startup",
       "addedOn": "2026-11-05",
-      "indiaOpenings": 13
+      "indiaOpenings": 13,
+      "employeesApprox": 28
     },
     {
       "provider": "greenhouse",
@@ -2614,7 +2622,8 @@
       "sector": "Fintech",
       "companyType": "Indian Startup",
       "addedOn": "2026-11-14",
-      "indiaOpenings": 13
+      "indiaOpenings": 12,
+      "employeesApprox": 30
     },
     {
       "provider": "workday",
@@ -2655,6 +2664,17 @@
       "country": "in",
       "indiaOpenings": 12,
       "addedOn": "2026-10-27"
+    },
+    {
+      "provider": "ashby",
+      "board": "plane",
+      "companyName": "Plane",
+      "website": "https://www.plane.so",
+      "sector": "IT & Software",
+      "companyType": "Indian Startup",
+      "country": "in",
+      "indiaOpenings": 12,
+      "employeesApprox": 18
     },
     {
       "provider": "smartrecruiters",
@@ -2709,6 +2729,16 @@
       "indiaOpenings": 11
     },
     {
+      "provider": "lever",
+      "board": "cred",
+      "companyName": "CRED",
+      "website": "https://cred.club",
+      "sector": "Fintech",
+      "companyType": "Indian Startup",
+      "indiaOpenings": 11,
+      "employeesApprox": 80
+    },
+    {
       "provider": "workday",
       "board": "expedia/wd108/search",
       "companyName": "Expedia",
@@ -2747,15 +2777,6 @@
       "indiaOpenings": 10
     },
     {
-      "provider": "greenhouse",
-      "board": "groww",
-      "companyName": "Groww",
-      "website": "https://groww.in",
-      "sector": "Fintech",
-      "companyType": "Indian Startup",
-      "indiaOpenings": 10
-    },
-    {
       "provider": "ashby",
       "board": "clickhouse",
       "companyName": "ClickHouse",
@@ -2763,25 +2784,6 @@
       "sector": "IT & Software",
       "companyType": "Multinational (MNC)",
       "country": "in",
-      "indiaOpenings": 10
-    },
-    {
-      "provider": "ashby",
-      "board": "plane",
-      "companyName": "Plane",
-      "website": "https://www.plane.so",
-      "sector": "IT & Software",
-      "companyType": "Indian Startup",
-      "country": "in",
-      "indiaOpenings": 10
-    },
-    {
-      "provider": "lever",
-      "board": "cred",
-      "companyName": "CRED",
-      "website": "https://cred.club",
-      "sector": "Fintech",
-      "companyType": "Indian Startup",
       "indiaOpenings": 10
     },
     {
@@ -2802,7 +2804,8 @@
       "sector": "IT & Software",
       "companyType": "Indian Startup",
       "addedOn": "2026-11-05",
-      "indiaOpenings": 10
+      "indiaOpenings": 10,
+      "employeesApprox": 22
     },
     {
       "provider": "workday",
@@ -2826,6 +2829,37 @@
       "indiaOpenings": 10
     },
     {
+      "provider": "ashby",
+      "board": "spotdraft",
+      "companyName": "SpotDraft",
+      "website": "https://www.spotdraft.com",
+      "sector": "IT & Software",
+      "companyType": "Indian Startup",
+      "indiaOpenings": 10,
+      "employeesApprox": 40
+    },
+    {
+      "provider": "ashby",
+      "board": "aiprise",
+      "companyName": "AiPrise",
+      "website": "https://www.aiprise.com",
+      "sector": "Fintech",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-05",
+      "indiaOpenings": 10,
+      "employeesApprox": 15
+    },
+    {
+      "provider": "greenhouse",
+      "board": "groww",
+      "companyName": "Groww",
+      "website": "https://groww.in",
+      "sector": "Fintech",
+      "companyType": "Indian Startup",
+      "indiaOpenings": 9,
+      "employeesApprox": 80
+    },
+    {
       "provider": "greenhouse",
       "board": "roblox",
       "companyName": "Roblox",
@@ -2833,15 +2867,6 @@
       "sector": "Media & Advertising",
       "companyType": "Multinational (MNC)",
       "country": "in",
-      "indiaOpenings": 9
-    },
-    {
-      "provider": "ashby",
-      "board": "spotdraft",
-      "companyName": "SpotDraft",
-      "website": "https://www.spotdraft.com",
-      "sector": "IT & Software",
-      "companyType": "Indian Startup",
       "indiaOpenings": 9
     },
     {
@@ -2882,17 +2907,8 @@
       "companyType": "Indian Startup",
       "country": "in",
       "indiaOpenings": 9,
-      "addedOn": "2026-10-27"
-    },
-    {
-      "provider": "lever",
-      "board": "netomi",
-      "companyName": "Netomi",
-      "website": "https://www.netomi.com",
-      "sector": "IT & Software",
-      "companyType": "Indian Startup",
-      "addedOn": "2026-11-05",
-      "indiaOpenings": 9
+      "addedOn": "2026-10-27",
+      "employeesApprox": 20
     },
     {
       "provider": "lever",
@@ -3039,16 +3055,6 @@
       "indiaOpenings": 8
     },
     {
-      "provider": "greenhouse",
-      "board": "commerceiq",
-      "companyName": "CommerceIQ",
-      "website": "https://commerceiq.ai",
-      "sector": "IT & Software",
-      "companyType": "Indian Startup",
-      "addedOn": "2026-11-05",
-      "indiaOpenings": 8
-    },
-    {
       "provider": "lever",
       "board": "zimperium",
       "companyName": "Zimperium",
@@ -3066,7 +3072,8 @@
       "sector": "IT & Software",
       "companyType": "Indian Startup",
       "addedOn": "2026-11-05",
-      "indiaOpenings": 8
+      "indiaOpenings": 8,
+      "employeesApprox": 18
     },
     {
       "provider": "greenhouse",
@@ -3087,6 +3094,40 @@
       "companyType": "Multinational (MNC)",
       "addedOn": "2026-11-14",
       "indiaOpenings": 8
+    },
+    {
+      "provider": "lever",
+      "board": "gushwork",
+      "companyName": "Gushwork",
+      "website": "https://www.gushwork.ai",
+      "sector": "Media & Advertising",
+      "companyType": "Indian Startup",
+      "country": "in",
+      "indiaOpenings": 8,
+      "addedOn": "2026-10-27",
+      "employeesApprox": 15
+    },
+    {
+      "provider": "greenhouse",
+      "board": "truefoundry",
+      "companyName": "TrueFoundry",
+      "website": "https://www.truefoundry.com",
+      "sector": "IT & Software",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-21",
+      "employeesApprox": 45,
+      "indiaOpenings": 8
+    },
+    {
+      "provider": "greenhouse",
+      "board": "commerceiq",
+      "companyName": "CommerceIQ",
+      "website": "https://commerceiq.ai",
+      "sector": "IT & Software",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-05",
+      "indiaOpenings": 7,
+      "employeesApprox": 40
     },
     {
       "provider": "smartrecruiters",
@@ -3162,14 +3203,14 @@
     },
     {
       "provider": "lever",
-      "board": "gushwork",
-      "companyName": "Gushwork",
-      "website": "https://www.gushwork.ai",
-      "sector": "Media & Advertising",
+      "board": "netomi",
+      "companyName": "Netomi",
+      "website": "https://www.netomi.com",
+      "sector": "IT & Software",
       "companyType": "Indian Startup",
-      "country": "in",
-      "indiaOpenings": 7,
-      "addedOn": "2026-10-27"
+      "addedOn": "2026-11-05",
+      "indiaOpenings": 6,
+      "employeesApprox": 40
     },
     {
       "provider": "smartrecruiters",
@@ -3180,27 +3221,8 @@
       "companyType": "Indian Startup",
       "addedOn": "2026-11-05",
       "country": "in",
-      "indiaOpenings": 7
-    },
-    {
-      "provider": "ashby",
-      "board": "aiprise",
-      "companyName": "AiPrise",
-      "website": "https://www.aiprise.com",
-      "sector": "Fintech",
-      "companyType": "Indian Startup",
-      "addedOn": "2026-11-05",
-      "indiaOpenings": 7
-    },
-    {
-      "provider": "workable",
-      "board": "tentworks-interactive",
-      "companyName": "Tentworks Interactive",
-      "website": "https://www.tentworks.com",
-      "sector": "Media & Advertising",
-      "companyType": "Indian Startup",
-      "addedOn": "2026-11-05",
-      "indiaOpenings": 7
+      "indiaOpenings": 6,
+      "employeesApprox": 25
     },
     {
       "provider": "greenhouse",
@@ -3333,15 +3355,6 @@
       "indiaOpenings": 5
     },
     {
-      "provider": "ashby",
-      "board": "atlan",
-      "companyName": "Atlan",
-      "website": "https://atlan.com",
-      "sector": "IT & Software",
-      "companyType": "Indian Startup",
-      "indiaOpenings": 5
-    },
-    {
       "provider": "greenhouse",
       "board": "simpplr",
       "companyName": "Simpplr",
@@ -3419,6 +3432,17 @@
       "sector": "IT & Software",
       "companyType": "Multinational (MNC)",
       "addedOn": "2026-11-14",
+      "indiaOpenings": 5
+    },
+    {
+      "provider": "ashby",
+      "board": "pravah",
+      "companyName": "Pravah",
+      "website": "https://www.pravah.ai",
+      "sector": "Energy & Utilities",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-21",
+      "employeesApprox": 17,
       "indiaOpenings": 5
     },
     {
@@ -3519,7 +3543,8 @@
       "companyType": "Indian Startup",
       "country": "in",
       "indiaOpenings": 4,
-      "addedOn": "2026-10-27"
+      "addedOn": "2026-10-27",
+      "employeesApprox": 15
     },
     {
       "provider": "lever",
@@ -3554,16 +3579,6 @@
     },
     {
       "provider": "greenhouse",
-      "board": "slice",
-      "companyName": "Slice",
-      "website": "https://sliceit.com",
-      "sector": "Fintech",
-      "companyType": "Indian Startup",
-      "addedOn": "2026-11-11",
-      "indiaOpenings": 4
-    },
-    {
-      "provider": "greenhouse",
       "board": "asana",
       "companyName": "Asana",
       "website": "https://asana.com",
@@ -3583,6 +3598,27 @@
       "indiaOpenings": 4
     },
     {
+      "provider": "ashby",
+      "board": "composio",
+      "companyName": "Composio",
+      "website": "https://www.composio.dev",
+      "sector": "IT & Software",
+      "companyType": "Indian Startup",
+      "country": "in",
+      "indiaOpenings": 4,
+      "employeesApprox": 20
+    },
+    {
+      "provider": "ashby",
+      "board": "atlan",
+      "companyName": "Atlan",
+      "website": "https://atlan.com",
+      "sector": "IT & Software",
+      "companyType": "Indian Startup",
+      "indiaOpenings": 3,
+      "employeesApprox": 40
+    },
+    {
       "provider": "greenhouse",
       "board": "yugabyte",
       "companyName": "Yugabyte",
@@ -3599,16 +3635,6 @@
       "website": "https://grafana.com",
       "sector": "IT & Software",
       "companyType": "Multinational (MNC)",
-      "country": "in",
-      "indiaOpenings": 3
-    },
-    {
-      "provider": "ashby",
-      "board": "composio",
-      "companyName": "Composio",
-      "website": "https://www.composio.dev",
-      "sector": "IT & Software",
-      "companyType": "Indian Startup",
       "country": "in",
       "indiaOpenings": 3
     },
@@ -3670,7 +3696,8 @@
       "sector": "Education & HR Tech",
       "companyType": "Indian Startup",
       "addedOn": "2026-11-11",
-      "indiaOpenings": 3
+      "indiaOpenings": 3,
+      "employeesApprox": 80
     },
     {
       "provider": "lever",
@@ -3679,7 +3706,8 @@
       "website": "https://pocketfm.com",
       "sector": "Media & Advertising",
       "companyType": "Indian Startup",
-      "indiaOpenings": 2
+      "indiaOpenings": 2,
+      "employeesApprox": 20
     },
     {
       "provider": "greenhouse",
@@ -3743,6 +3771,17 @@
       "indiaOpenings": 2
     },
     {
+      "provider": "workable",
+      "board": "deepsource",
+      "companyName": "DeepSource",
+      "website": "https://deepsource.com",
+      "sector": "IT & Software",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-11",
+      "indiaOpenings": 1,
+      "employeesApprox": 30
+    },
+    {
       "provider": "greenhouse",
       "board": "duolingo",
       "companyName": "Duolingo",
@@ -3790,7 +3829,8 @@
       "sector": "IT & Software",
       "companyType": "Indian Startup",
       "addedOn": "2026-11-05",
-      "indiaOpenings": 1
+      "indiaOpenings": 1,
+      "employeesApprox": 15
     },
     {
       "provider": "workable",
@@ -3810,7 +3850,8 @@
       "sector": "Automotive",
       "companyType": "Indian Startup",
       "addedOn": "2026-11-11",
-      "indiaOpenings": 1
+      "indiaOpenings": 1,
+      "employeesApprox": 100
     },
     {
       "provider": "smartrecruiters",
@@ -3820,7 +3861,8 @@
       "sector": "Education & HR Tech",
       "companyType": "Indian Startup",
       "addedOn": "2026-11-11",
-      "indiaOpenings": 1
+      "indiaOpenings": 1,
+      "employeesApprox": 30
     },
     {
       "provider": "smartrecruiters",
@@ -3830,7 +3872,8 @@
       "sector": "Real Estate",
       "companyType": "Indian Startup",
       "addedOn": "2026-11-11",
-      "indiaOpenings": 1
+      "indiaOpenings": 1,
+      "employeesApprox": 80
     },
     {
       "provider": "smartrecruiters",
@@ -3840,7 +3883,8 @@
       "sector": "Fintech",
       "companyType": "Indian Startup",
       "addedOn": "2026-11-11",
-      "indiaOpenings": 1
+      "indiaOpenings": 1,
+      "employeesApprox": 50
     },
     {
       "provider": "greenhouse",
@@ -3849,16 +3893,6 @@
       "website": "https://www.brex.com",
       "sector": "Fintech",
       "companyType": "Multinational (MNC)",
-      "addedOn": "2026-11-11",
-      "indiaOpenings": 1
-    },
-    {
-      "provider": "workable",
-      "board": "testmu",
-      "companyName": "LambdaTest",
-      "website": "https://www.lambdatest.com",
-      "sector": "IT & Software",
-      "companyType": "Indian Startup",
       "addedOn": "2026-11-11",
       "indiaOpenings": 1
     },
@@ -3891,6 +3925,39 @@
       "companyType": "Multinational (MNC)",
       "addedOn": "2026-11-14",
       "indiaOpenings": 1
+    },
+    {
+      "provider": "workable",
+      "board": "tentworks-interactive",
+      "companyName": "Tentworks Interactive",
+      "website": "https://www.tentworks.com",
+      "sector": "Media & Advertising",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-05",
+      "indiaOpenings": 0,
+      "employeesApprox": 18
+    },
+    {
+      "provider": "greenhouse",
+      "board": "slice",
+      "companyName": "Slice",
+      "website": "https://sliceit.com",
+      "sector": "Fintech",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-11",
+      "indiaOpenings": 0,
+      "employeesApprox": 40
+    },
+    {
+      "provider": "workable",
+      "board": "testmu",
+      "companyName": "LambdaTest",
+      "website": "https://www.lambdatest.com",
+      "sector": "IT & Software",
+      "companyType": "Indian Startup",
+      "addedOn": "2026-11-11",
+      "indiaOpenings": 0,
+      "employeesApprox": 40
     },
     {
       "provider": "greenhouse",
@@ -3940,6 +4007,61 @@
       "sector": "Healthcare & Medical Devices",
       "companyType": "Indian Startup",
       "addedOn": "2026-11-11",
+      "indiaOpenings": 0
+    },
+    {
+      "provider": "ashby",
+      "board": "resend",
+      "companyName": "Resend",
+      "website": "https://resend.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-21",
+      "employeesApprox": 18,
+      "indiaOpenings": 0
+    },
+    {
+      "provider": "ashby",
+      "board": "firecrawl",
+      "companyName": "Firecrawl",
+      "website": "https://www.firecrawl.dev",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-21",
+      "employeesApprox": 15,
+      "indiaOpenings": 0
+    },
+    {
+      "provider": "ashby",
+      "board": "parallel",
+      "companyName": "Parallel",
+      "website": "https://parallel.ai",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-21",
+      "employeesApprox": 15,
+      "indiaOpenings": 0
+    },
+    {
+      "provider": "ashby",
+      "board": "inngest",
+      "companyName": "Inngest",
+      "website": "https://www.inngest.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-21",
+      "employeesApprox": 18,
+      "indiaOpenings": 0
+    },
+    {
+      "provider": "ashby",
+      "board": "adapt",
+      "companyName": "Adapt",
+      "website": "https://www.adapt.ai",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-21",
+      "employeesApprox": 12,
       "indiaOpenings": 0
     }
   ]

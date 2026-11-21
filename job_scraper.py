@@ -45,7 +45,7 @@ TIMEOUT = 25
 REQUEST_DELAY_SECONDS = 0.5
 # Only keep "latest" jobs: posted/updated within this many days, newest N per board.
 MAX_AGE_DAYS = 30
-MAX_JOBS_PER_BOARD = 50
+MAX_JOBS_PER_BOARD = 100
 CACHE_SECONDS = 30 * 60
 USER_AGENT = "KhojsJobResearchBot/0.1 (public job listing collection; contact: admin@khojs.com)"
 

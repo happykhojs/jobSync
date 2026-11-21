@@ -85,7 +85,7 @@
   .opt .cnt { color: var(--muted); font-weight: 400; font-size: 12px; }
   .opt.on .cnt { color: var(--accent); }
   .opt .new { margin-left: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; color: #067647; background: #dcfae6; padding: 1px 5px; border-radius: 999px; }
-  [data-filter="companies"], [data-filter="startups"], [data-filter="smallCompanies"] { max-height: 150px; overflow-y: auto; }
+  [data-filter="companies"], [data-filter="startups"], [data-filter="smallCompanies"], [data-filter="smallTeams"] { max-height: 150px; overflow-y: auto; }
   .startups-bar, .small-bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 8px; }
   .startups-bar .check, .small-bar .check { font-size: 13px; color: var(--text); font-weight: 500; }
   .panel-foot { display: flex; justify-content: space-between; align-items: center; margin-top: 14px; gap: 10px; flex-wrap: wrap; }
@@ -229,7 +229,7 @@
         </div></div>
       <div class="field"><label for="posted">Posted within</label><select id="posted"></select></div>
       <div class="field"><label for="sort">Sort by</label><select id="sort"></select></div>
-      <div class="field"><label for="count">Jobs to fetch</label><input id="count" type="number" min="1" max="100" value="10"></div>
+      <div class="field"><label for="count">Jobs to fetch</label><input id="count" type="number" min="1" max="250" value="200"></div>
       <button class="btn btn-primary go" id="searchBtn" type="submit">Search jobs</button>
     </div>
     <div class="filters collapsed" id="filters">
@@ -252,6 +252,14 @@
           <span class="muted" id="startupHint"></span>
         </div>
         <div class="chipset" data-filter="startups"></div>
+      </div>
+      <div class="fgroup" style="grid-column:1/-1">
+        <div class="flabel">Small teams (≈10–20 people)</div>
+        <div class="small-bar">
+          <label class="check"><input type="checkbox" id="smallTeamsOnly"> All small teams with open roles</label>
+          <span class="muted" id="smallTeamsHint"></span>
+        </div>
+        <div class="chipset" data-filter="smallTeams"></div>
       </div>
       <div class="fgroup" style="grid-column:1/-1">
         <div class="flabel">Smaller companies</div>
@@ -347,7 +355,7 @@ const ENUMS = {
   proficiencyLevel: ["BEGINNER", "INTERMEDIATE", "ADVANCED", "EXPERT"],
   benefitType: ["HEALTH", "STOCK", "REMOTE", "GYM", "FOOD", "LEARNING", "VISA", "BONUS", "OTHER"],
 };
-const FILTER_KEYS = ["locations", "experience", "sources", "roleTypes", "companySizes", "sectors", "companyTypes", "employmentTypes", "workplaceTypes", "companies", "startups", "smallCompanies"];
+const FILTER_KEYS = ["locations", "experience", "sources", "roleTypes", "companySizes", "sectors", "companyTypes", "employmentTypes", "workplaceTypes", "companies", "startups", "smallCompanies", "smallTeams"];
 const state = {
   jobs: [], selected: new Set(), status: {}, session: { loggedIn: false }, editing: null,
   filters: Object.fromEntries(FILTER_KEYS.map((k) => [k, []])), lastCriteria: null,
@@ -456,14 +464,19 @@ function renderFilters(opts) {
     companies: opts.companyOpenings || {},
     startups: opts.startupOpenings || {},
     smallCompanies: opts.smallCompanyOpenings || {},
+    smallTeams: opts.smallTeamOpenings || {},
     companySizes: opts.companySizeOpenings || {},
   };
+  const emp = opts.smallTeamEmployees || {};
   const isNew = new Set(opts.newCompanies || []);
   if (opts.sectors) opts.sectors.sort((a, b) => (counts.sectors[b] || 0) - (counts.sectors[a] || 0));
   document.querySelectorAll("[data-filter]").forEach((box) => {
     const key = box.dataset.filter, n = counts[key] || {};
-    box.innerHTML = (opts[key] || []).map((v) =>
-      `<button type="button" class="opt ${state.filters[key].includes(v) ? "on" : ""}" data-v="${esc(v)}">${esc(pretty(v))}${n[v] ? ` <span class="cnt">${n[v].toLocaleString("en-IN")}</span>` : ""}${(key === "companies" || key === "startups" || key === "smallCompanies") && isNew.has(v) ? `<span class="new">new</span>` : ""}</button>`).join("");
+    box.innerHTML = (opts[key] || []).map((v) => {
+      const extra = key === "smallTeams" && emp[v] ? ` <span class="cnt">~${emp[v]} ppl</span>` : (n[v] ? ` <span class="cnt">${n[v].toLocaleString("en-IN")}</span>` : "");
+      const neu = (key === "companies" || key === "startups" || key === "smallCompanies" || key === "smallTeams") && isNew.has(v) ? `<span class="new">new</span>` : "";
+      return `<button type="button" class="opt ${state.filters[key].includes(v) ? "on" : ""}" data-v="${esc(v)}">${esc(pretty(v))}${extra}${neu}</button>`;
+    }).join("");
   });
   const startupCount = (opts.startups || []).length;
   const startupJobs = Object.values(opts.startupOpenings || {}).reduce((a, b) => a + (b || 0), 0);
@@ -475,17 +488,22 @@ function renderFilters(opts) {
   $("smallHint").textContent = smallCount
     ? `${smallCount} companies · ${smallJobs.toLocaleString("en-IN")} India openings`
     : "";
+  const teamCount = (opts.smallTeams || []).length;
+  $("smallTeamsHint").textContent = teamCount
+    ? `${teamCount} teams · ~10–20 people · open roles`
+    : "";
   const saved = store.get("search") || {};
   $("keywords").value = saved.keywords || "";
   $("posted").value = String(saved.postedWithinDays || 14);
   $("sort").value = saved.sort || "newest";
-  $("count").value = saved.count || 10;
+  $("count").value = saved.count || 200;
   $("exclude").value = saved.excludeKeywords || "";
   $("titleOnly").checked = !!saved.titleOnly;
   $("salaryOnly").checked = !!saved.salaryOnly;
   $("newOnly").checked = !!saved.newCompaniesOnly;
   $("startupsOnly").checked = !!saved.startupsOnly;
   $("smallOnly").checked = !!saved.smallCompaniesOnly;
+  $("smallTeamsOnly").checked = !!saved.smallTeamsOnly;
 }
 
 document.querySelectorAll("[data-filter]").forEach((box) => box.addEventListener("click", (e) => {
@@ -502,7 +520,7 @@ $("clearBtn").onclick = () => {
   FILTER_KEYS.forEach((k) => (state.filters[k] = []));
   document.querySelectorAll(".opt.on").forEach((b) => b.classList.remove("on"));
   $("keywords").value = ""; $("exclude").value = "";
-  $("titleOnly").checked = $("salaryOnly").checked = $("newOnly").checked = $("startupsOnly").checked = $("smallOnly").checked = false;
+  $("titleOnly").checked = $("salaryOnly").checked = $("newOnly").checked = $("startupsOnly").checked = $("smallOnly").checked = $("smallTeamsOnly").checked = false;
 };
 
 function criteria() {
@@ -516,7 +534,8 @@ function criteria() {
     newCompaniesOnly: $("newOnly").checked,
     startupsOnly: $("startupsOnly").checked,
     smallCompaniesOnly: $("smallOnly").checked,
-    count: Math.max(1, Math.min(100, parseInt($("count").value) || 10)),
+    smallTeamsOnly: $("smallTeamsOnly").checked,
+    count: Math.max(1, Math.min(250, parseInt($("count").value) || 200)),
     ...JSON.parse(JSON.stringify(state.filters)),
   };
 }
@@ -1028,9 +1047,14 @@ $("superFunBtn").onclick = () => {
   const on = SuperFun.toggle();
   renderFunBtn(); toast(on ? "🚀 SUPER FUN: anything can happen now. You're the 🦖 at the bottom (press ? for controls)" : "Super Fun off. The disco ball rests 🪩");
 };
-window.Fun?.init();
-// Super Fun is switched off for now; set this to true to bring it back.
+// Fun Zone and Super Fun are switched off for now; set these to true to bring them back.
+const FUN_ZONE_ENABLED = false;
 const SUPER_FUN_ENABLED = false;
+if (FUN_ZONE_ENABLED) window.Fun?.init();
+else {
+  window.Fun?.stop();
+  Object.assign($("funBtn"), { disabled: true, title: "Fun Zone is turned off for now" });
+}
 if (SUPER_FUN_ENABLED) window.SuperFun?.init();
 else Object.assign($("superFunBtn"), { disabled: true, title: "Super Fun is turned off for now" });
 renderFunBtn();
