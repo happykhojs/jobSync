@@ -306,6 +306,7 @@ def _run_search(search_id: str, criteria: dict) -> None:
             "companiesSearched": result["companiesSearched"],
             "errors": result["errors"],
             "postedCount": len(load_json(POSTED_FILE, {})),
+            **({"notice": result["notice"]} if result.get("notice") else {}),
         }}
     except Exception as exc:
         logging.exception("Search failed")

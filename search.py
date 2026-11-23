@@ -297,18 +297,38 @@ def search(
     role_types = set(criteria.get("roleTypes") or []) & set(ROLE_TYPES)
     tech_only = role_types == {"Tech roles"}
     non_tech_only = role_types == {"Non-tech roles"}
-    boards = [
-        b for b in catalog
-        if (not sectors or b.get("sector") in sectors)
-        and (not types or b.get("companyType") in types)
-        and (not wanted_companies or b["companyName"] in wanted_companies)
-        and (not sources or SOURCES[bool(b.get("platform"))] in sources)
-        and (not sizes or company_size(b) in sizes)
-        and (not new_only or is_new_company(b))
-        and (not startups_only or is_startup(b))
-        and (not small_only or is_small_company(b))
-        and (not small_teams_only or is_small_team(b))
-    ]
+    def board_ok(b: dict, *, use_company_picks: bool) -> bool:
+        return (
+            (not sectors or b.get("sector") in sectors)
+            and (not types or b.get("companyType") in types)
+            and (not use_company_picks or not wanted_companies or b["companyName"] in wanted_companies)
+            and (not sources or SOURCES[bool(b.get("platform"))] in sources)
+            and (not sizes or company_size(b) in sizes)
+            and (not new_only or is_new_company(b))
+            and (not startups_only or is_startup(b))
+            and (not small_only or is_small_company(b))
+            and (not small_teams_only or is_small_team(b))
+        )
+
+    boards = [b for b in catalog if board_ok(b, use_company_picks=True)]
+    # Company-name chips ∩ sector chips is easy to empty by accident (AND across filter
+    # groups). If that happens but sectors/types alone would match, drop the name picks.
+    relaxed_company_picks = False
+    if not boards and wanted_companies and (sectors or types or sizes or new_only or startups_only or small_only or small_teams_only):
+        boards = [b for b in catalog if board_ok(b, use_company_picks=False)]
+        relaxed_company_picks = bool(boards)
+
+    if not boards:
+        return {
+            "records": [],
+            "matched": 0,
+            "companiesSearched": 0,
+            "errors": [],
+            "notice": (
+                "No companies match this filter combination. Click Clear filters, then search again — "
+                "or leave Sector selected and clear company/startup chips (those filters stack as AND)."
+            ),
+        }
 
     loc_re = _location_regex(criteria.get("locations") or [])
     remote_only = criteria.get("locations") == ["Remote (India)"]
@@ -462,9 +482,15 @@ def search(
         # Newest first within a company; companies with more openings lead each round.
         matched.sort(key=lambda r: r["indiaOpenings"], reverse=True)
         results = interleave_companies(matched)[:count]
-    return {
+    out = {
         "records": results,
         "matched": matched_total,
         "companiesSearched": len(boards),
         "errors": errors,
     }
+    if relaxed_company_picks:
+        out["notice"] = (
+            "Company name chips didn’t overlap with your sector filters, so those name picks were ignored. "
+            "Clear company/startup/small-team chips if you only want sectors."
+        )
+    return out

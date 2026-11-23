@@ -358,7 +358,7 @@ const ENUMS = {
 const FILTER_KEYS = ["locations", "experience", "sources", "roleTypes", "companySizes", "sectors", "companyTypes", "employmentTypes", "workplaceTypes", "companies", "startups", "smallCompanies", "smallTeams"];
 const state = {
   jobs: [], selected: new Set(), status: {}, session: { loggedIn: false }, editing: null,
-  searchErrors: [], searchMatched: 0,
+  searchErrors: [], searchMatched: 0, searchNotice: "",
   filters: Object.fromEntries(FILTER_KEYS.map((k) => [k, []])), lastCriteria: null,
 };
 const $ = (id) => document.getElementById(id);
@@ -641,10 +641,12 @@ async function runSearch(c) {
     state.jobs = data.jobs; state.selected.clear(); state.status = {};
     state.searchErrors = data.errors || [];
     state.searchMatched = data.matched || 0;
+    state.searchNotice = data.notice || "";
     state.newKeys = markNewJobs(data.jobs);
     const newCount = data.jobs.filter((j) => state.newKeys.has(j.sourceKey)).length;
     $("stats").textContent = `${data.matched.toLocaleString("en-IN")}+ matching jobs across ${data.companiesSearched} companies · showing ${data.jobs.length}${newCount ? ` · ${newCount} new` : ""} · ${data.postedCount} posted so far`;
-    if (data.errors.length) toast(`${data.errors.length} company site(s) didn't respond and were skipped`);
+    if (data.notice) toast(data.notice);
+    else if (data.errors.length) toast(`${data.errors.length} company site(s) didn't respond and were skipped`);
     renderList();
   } catch (err) {
     if (run !== state.searchRun) return;
@@ -713,9 +715,14 @@ function renderList() {
   if (!state.jobs.length) {
     const errs = state.searchErrors || [];
     const matched = state.searchMatched || 0;
+    const notice = state.searchNotice || "";
     const rateLimited = errs.some((e) => /429|Too Many Requests|rate/i.test(e));
-    const msg = rateLimited
+    const msg = notice
+      ? esc(notice)
+      : rateLimited
       ? `Company career sites rate-limited the search (common for Workday sectors like Aerospace). Click <b>Clear filters</b>, wait ~30 seconds, then search a broader sector such as <b>IT &amp; Software</b> — or search again with no sector.`
+      : matched === 0 && !errs.length
+        ? `No companies matched. Click <b>Clear filters</b>, then <b>Search jobs</b>. Selecting company chips together with sectors requires those companies to be in the chosen sectors.`
       : errs.length && matched > 0
         ? `Found matching listings but ${errs.length} company site(s) failed while loading details. Clear filters and try again in a minute.`
         : `No new jobs match these filters. Try <b>Clear filters</b>, a longer date range (Posted within), or fewer filters.`;
