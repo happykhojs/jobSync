@@ -128,8 +128,8 @@ def is_new_company(board: dict) -> bool:
     cutoff = (datetime.now(timezone.utc) - timedelta(days=NEW_COMPANY_DAYS)).date().isoformat()
     return bool(added) and added >= cutoff
 SORTS = {"newest": "Newest first", "openings": "Biggest employers first"}
-# 8, not 16: about as fast (sites are the bottleneck) and ~30 MB lighter on a small server.
-MAX_WORKERS = 8
+# 6 keeps Workday under its rate limit better than 8 (Aerospace & similar sectors are Workday-heavy).
+MAX_WORKERS = 6
 
 
 def is_startup(board: dict) -> bool:

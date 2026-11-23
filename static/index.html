@@ -358,6 +358,7 @@ const ENUMS = {
 const FILTER_KEYS = ["locations", "experience", "sources", "roleTypes", "companySizes", "sectors", "companyTypes", "employmentTypes", "workplaceTypes", "companies", "startups", "smallCompanies", "smallTeams"];
 const state = {
   jobs: [], selected: new Set(), status: {}, session: { loggedIn: false }, editing: null,
+  searchErrors: [], searchMatched: 0,
   filters: Object.fromEntries(FILTER_KEYS.map((k) => [k, []])), lastCriteria: null,
 };
 const $ = (id) => document.getElementById(id);
@@ -638,6 +639,8 @@ async function runSearch(c) {
     });
     if (!data) return; // a newer search replaced this one
     state.jobs = data.jobs; state.selected.clear(); state.status = {};
+    state.searchErrors = data.errors || [];
+    state.searchMatched = data.matched || 0;
     state.newKeys = markNewJobs(data.jobs);
     const newCount = data.jobs.filter((j) => state.newKeys.has(j.sourceKey)).length;
     $("stats").textContent = `${data.matched.toLocaleString("en-IN")}+ matching jobs across ${data.companiesSearched} companies · showing ${data.jobs.length}${newCount ? ` · ${newCount} new` : ""} · ${data.postedCount} posted so far`;
@@ -707,7 +710,19 @@ function dupNotice(job) {
 }
 
 function renderList() {
-  if (!state.jobs.length) { $("list").innerHTML = `<div class="empty">No new jobs match these filters. Try more locations, a longer date range or fewer filters.</div>`; updatePostBtn(); return; }
+  if (!state.jobs.length) {
+    const errs = state.searchErrors || [];
+    const matched = state.searchMatched || 0;
+    const rateLimited = errs.some((e) => /429|Too Many Requests|rate/i.test(e));
+    const msg = rateLimited
+      ? `Company career sites rate-limited the search (common for Workday sectors like Aerospace). Click <b>Clear filters</b>, wait ~30 seconds, then search a broader sector such as <b>IT &amp; Software</b> — or search again with no sector.`
+      : errs.length && matched > 0
+        ? `Found matching listings but ${errs.length} company site(s) failed while loading details. Clear filters and try again in a minute.`
+        : `No new jobs match these filters. Try <b>Clear filters</b>, a longer date range (Posted within), or fewer filters.`;
+    $("list").innerHTML = `<div class="empty">${msg}</div>`;
+    updatePostBtn();
+    return;
+  }
   $("list").innerHTML = state.jobs.map((job) => {
     const p = job.payload, k = job.sourceKey, st = state.status[k];
     const loc = (p.locations || [])[0] || {};

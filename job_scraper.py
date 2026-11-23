@@ -103,12 +103,15 @@ def _cache_put(key: str, data: Any) -> None:
 
 
 def _send(method: str, url: str, **kwargs: Any) -> requests.Response:
-    # Rate limited (HTTP 429): wait as asked (up to a few seconds) and try once more.
+    # Rate limited (HTTP 429): Workday especially — wait and retry a few times with backoff.
     response = session.request(method, url, timeout=TIMEOUT, **kwargs)
-    if response.status_code == 429:
+    attempt = 0
+    while response.status_code == 429 and attempt < 3:
         retry_after = response.headers.get("Retry-After", "")
-        time.sleep(min(int(retry_after) if retry_after.isdigit() else 3, RATE_LIMIT_WAIT_SECONDS))
+        wait = int(retry_after) if retry_after.isdigit() else min(3 * (2 ** attempt), RATE_LIMIT_WAIT_SECONDS)
+        time.sleep(min(max(wait, 2), RATE_LIMIT_WAIT_SECONDS))
         response = session.request(method, url, timeout=TIMEOUT, **kwargs)
+        attempt += 1
     response.raise_for_status()
     return response
 
