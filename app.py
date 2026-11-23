@@ -31,7 +31,7 @@ from htmlfmt import sanitize_html
 from job_scraper import release_memory
 from enrich import SKILLS
 from search import options, search, suggest
-from posts import STYLES, Accounts, SavedLogins, clean_hashtags, extract_post_from_image, parse_logins, sanitize_post_html, write_post
+from posts import STYLES, clean_hashtags, extract_post_from_image, parse_logins, sanitize_post_html, write_post
 from post_jobs import ENV_FILE, JOBS_FILE, POSTED_FILE, build_payload, improve_payload, load_env, load_json
 from workowon import AuthError, WorkowonClient, record_keys
 
@@ -43,8 +43,6 @@ BOARDS_FILE = BASE_DIR / "boards.json"
 load_env(ENV_FILE)
 app = Flask(__name__, static_folder="static")
 client = WorkowonClient()
-accounts = Accounts()
-saved_logins = SavedLogins()
 files_lock = threading.Lock()
 keys_lock = threading.Lock()
 # Jobs already on WorkOwon (workowon.job_keys), refreshed at most every few minutes.
@@ -464,9 +462,33 @@ VISIBILITY = ["PUBLIC", "CONNECTIONS", "PRIVATE"]
 MEDIA_KINDS = {"image": "IMAGE", "video": "VIDEO", "document": "DOCUMENT"}
 
 
+def ephemeral_client(email: str = "", access: str = "", refresh: str = "") -> WorkowonClient:
+    """In-memory WorkOwon client — Post logins live in the browser, not on disk."""
+    wo = WorkowonClient(session_file=None)
+    wo.email = (email or "").strip() or None
+    wo.access_token = (access or "").strip() or None
+    wo.refresh_token = (refresh or "").strip() or None
+    return wo
+
+
 def post_client() -> WorkowonClient:
-    # The Post page sends the account it is posting as; several can be logged in at once.
-    return accounts.client(request.headers.get("X-Account", ""))
+    # Browser sends tokens from its own localStorage; each browser has a separate login.
+    access = request.headers.get("X-Access-Token", "")
+    refresh = request.headers.get("X-Refresh-Token", "")
+    if not (access or "").strip() and not (refresh or "").strip():
+        raise AuthError("This account is not logged in.")
+    return ephemeral_client(request.headers.get("X-Account", ""), access, refresh)
+
+
+def json_with_tokens(payload: dict, wo: WorkowonClient | None = None):
+    """JSON response; when tokens refresh mid-request, echo them so the browser can update."""
+    resp = jsonify(payload)
+    if wo is not None:
+        if wo.access_token:
+            resp.headers["X-Access-Token"] = wo.access_token
+        if wo.refresh_token:
+            resp.headers["X-Refresh-Token"] = wo.refresh_token
+    return resp
 
 
 def post_payload(body: dict, creating: bool) -> dict:
@@ -527,17 +549,9 @@ def post_options():
     })
 
 
-def accounts_view(**extra):
-    return jsonify({"accounts": accounts.list(), "saved": saved_logins.emails(), **extra})
-
-
-@app.get("/api/posts/accounts")
-def post_accounts():
-    return accounts_view()
-
-
 @app.post("/api/posts/accounts")
 def post_account_login():
+    """Log in for the Post page. Tokens are returned to the browser only — not stored on the server."""
     body = request.get_json(force=True)
     email, password = (body.get("email") or "").strip(), body.get("password") or ""
     if not email or not password:
@@ -545,22 +559,21 @@ def post_account_login():
     token = turnstile_from_body(body)
     if not token:
         return error("Complete the Cloudflare check before logging in.", 401)
+    wo = ephemeral_client()
     try:
-        accounts.login(email, password, turnstile_token=token)
+        wo.login(email, password, turnstile_token=token)
     except AuthError as exc:
         return error(str(exc), 401)
-    return accounts_view(email=email)
-
-
-@app.delete("/api/posts/accounts/<path:email>")
-def post_account_logout(email: str):
-    accounts.logout(email)
-    return accounts_view()
+    return json_with_tokens({
+        "email": wo.email or email,
+        "accessToken": wo.access_token,
+        "refreshToken": wo.refresh_token,
+    }, wo)
 
 
 @app.post("/api/posts/saved")
-def save_logins():
-    """Save many email/password pairs, from an uploaded CSV file or pasted text."""
+def parse_saved_logins():
+    """Parse many email/password pairs from pasted text or a CSV. The browser stores them locally."""
     file = request.files.get("file")
     if file:
         text = file.read().decode("utf-8-sig", errors="replace")
@@ -569,46 +582,32 @@ def save_logins():
     pairs, skipped = parse_logins(text)
     if not pairs:
         return error("No logins found. Use one per line: email,password")
-    new, updated = saved_logins.add(pairs)
-    return accounts_view(added=new, updated=updated, skipped=skipped)
-
-
-@app.post("/api/posts/saved/login")
-def login_saved():
-    body = request.get_json(force=True) or {}
-    email = (body.get("email") or "").strip()
-    password = saved_logins.password(email)
-    if not password:
-        return error("This email isn't in your saved logins.", 404)
-    token = turnstile_from_body(body)
-    if not token:
-        return error("Complete the Cloudflare check before logging in.", 401)
-    try:
-        accounts.login(email, password, turnstile_token=token)
-    except AuthError as exc:
-        return error(f"{email}: {exc}", 401)
-    return accounts_view(email=email)
-
-
-@app.delete("/api/posts/saved/<path:email>")
-def forget_saved(email: str):
-    saved_logins.remove(email)
-    return accounts_view()
+    # Deduplicate by email (last password wins), same as the old server-side store.
+    by_email: dict[str, tuple[str, str]] = {}
+    for email, password in pairs:
+        by_email[email.lower()] = (email, password)
+    return jsonify({
+        "pairs": [{"email": e, "password": p} for e, p in by_email.values()],
+        "added": len(by_email),
+        "skipped": skipped,
+    })
 
 
 @app.get("/api/posts/mine")
 def my_posts():
     try:
-        page = post_client().my_posts(int(request.args.get("page") or 0), 20)
+        wo = post_client()
+        page = wo.my_posts(int(request.args.get("page") or 0), 20)
     except Exception as exc:
         return posts_error(exc)
-    return jsonify(page)
+    return json_with_tokens(page, wo)
 
 
 @app.post("/api/posts/mine")
 def create_post():
     try:
-        return jsonify({"post": post_client().create_post(post_payload(request.get_json(force=True), creating=True))})
+        wo = post_client()
+        return json_with_tokens({"post": wo.create_post(post_payload(request.get_json(force=True), creating=True))}, wo)
     except Exception as exc:
         return posts_error(exc)
 
@@ -616,7 +615,8 @@ def create_post():
 @app.put("/api/posts/mine/<post_id>")
 def update_post(post_id: str):
     try:
-        return jsonify({"post": post_client().update_post(post_id, post_payload(request.get_json(force=True), creating=False))})
+        wo = post_client()
+        return json_with_tokens({"post": wo.update_post(post_id, post_payload(request.get_json(force=True), creating=False))}, wo)
     except Exception as exc:
         return posts_error(exc)
 
@@ -624,10 +624,11 @@ def update_post(post_id: str):
 @app.delete("/api/posts/mine/<post_id>")
 def delete_post(post_id: str):
     try:
-        post_client().delete_post(post_id)
+        wo = post_client()
+        wo.delete_post(post_id)
     except Exception as exc:
         return posts_error(exc)
-    return jsonify({"deleted": post_id})
+    return json_with_tokens({"deleted": post_id}, wo)
 
 
 @app.post("/api/posts/media")
@@ -639,10 +640,11 @@ def upload_post_media():
     kind = "image" if mime.startswith("image/") else "video" if mime.startswith("video/") else "document"
     data = file.read()
     try:
-        url = post_client().upload_post_media(kind, file.filename or "upload", mime, data)
+        wo = post_client()
+        url = wo.upload_post_media(kind, file.filename or "upload", mime, data)
     except Exception as exc:
         return posts_error(exc)
-    return jsonify({"type": MEDIA_KINDS[kind], "url": url, "fileName": file.filename, "mimeType": mime, "fileSizeBytes": len(data)})
+    return json_with_tokens({"type": MEDIA_KINDS[kind], "url": url, "fileName": file.filename, "mimeType": mime, "fileSizeBytes": len(data)}, wo)
 
 
 # Post media lives in a bucket that only serves pages on workowon.com, so the Post page loads it through here.

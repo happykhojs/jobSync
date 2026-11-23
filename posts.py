@@ -1,8 +1,9 @@
 """
 Community posts: several WorkOwon accounts to post from, and Gemini help to write or rewrite a post.
 
-Accounts are any WorkOwon users (not only admins). Each keeps its own tokens in
-.post_accounts/<hash>.json (git-ignored), so you can switch between them without logging in again.
+Accounts are any WorkOwon users (not only admins). Post-page tokens and saved
+logins live in the browser (localStorage), so one browser's login does not
+appear in another. The server only proxies WorkOwon with the tokens the browser sends.
 
 AI is opt-in: it only runs when the user clicks a style or sends a prompt on the Post page.
 """

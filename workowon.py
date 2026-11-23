@@ -103,13 +103,15 @@ def _error_message(response: requests.Response) -> str:
 
 
 class WorkowonClient:
-    def __init__(self, session_file: Path = SESSION_FILE) -> None:
+    def __init__(self, session_file: Path | None = SESSION_FILE) -> None:
+        # session_file=None keeps tokens in memory only (used by the Post page so each browser
+        # holds its own login; nothing is written under .post_accounts / .session.json).
         self._lock = threading.Lock()
         self.session_file = session_file
         self.access_token: str | None = None
         self.refresh_token: str | None = None
         self.email: str | None = None
-        if session_file.exists():
+        if session_file is not None and session_file.exists():
             try:
                 saved = json.loads(session_file.read_text(encoding="utf-8"))
                 self.access_token = saved.get("accessToken")
@@ -119,6 +121,8 @@ class WorkowonClient:
                 pass
 
     def _save(self) -> None:
+        if self.session_file is None:
+            return
         self.session_file.write_text(
             json.dumps({"accessToken": self.access_token, "refreshToken": self.refresh_token, "email": self.email}),
             encoding="utf-8",
@@ -154,7 +158,8 @@ class WorkowonClient:
     def logout(self) -> None:
         with self._lock:
             self.access_token = self.refresh_token = self.email = None
-            self.session_file.unlink(missing_ok=True)
+            if self.session_file is not None:
+                self.session_file.unlink(missing_ok=True)
 
     def _refresh(self) -> None:
         if not self.refresh_token:
@@ -162,7 +167,8 @@ class WorkowonClient:
         response = requests.post(f"{BASE_URL}/api/auth/refresh", json={"refreshToken": self.refresh_token}, timeout=TIMEOUT)
         if not response.ok:
             self.access_token = self.refresh_token = None
-            self.session_file.unlink(missing_ok=True)
+            if self.session_file is not None:
+                self.session_file.unlink(missing_ok=True)
             raise AuthError("Session expired. Please log in again.")
         self._store_tokens(response.json())
 

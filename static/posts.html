@@ -478,7 +478,7 @@
   <form class="modal-card" id="loginForm">
     <img src="/static/logo.png" alt="" style="width:44px;height:44px;margin-bottom:8px">
     <h2 id="loginTitle">Log in to WorkOwon</h2>
-    <p class="muted" style="margin-top:4px">Any WorkOwon account. Add several and switch between them from the top right.</p>
+    <p class="muted" style="margin-top:4px">Any WorkOwon account. Logins stay in this browser only — other browsers stay logged out. Add several and switch from the top right.</p>
     <div class="field"><label for="email">Email</label><input id="email" type="email" autocomplete="username" required></div>
     <div class="field"><label for="password">Password</label>
       <div class="pw">
@@ -590,12 +590,76 @@ const MAX_CHARS = 10000;
 const MAX_IMAGE_EDGE = 2560;
 const EYE = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg>`;
 const EYE_OFF = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 19c-7 0-11-7-11-7a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a18.5 18.5 0 0 1-2.16 3.19M14.12 14.12a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>`;
-const state = { accounts: [], saved: [], account: null, type: "TEXT", media: [], editingId: null, undo: [], page: 0, last: true, posts: [], options: null };
+// Post logins live in this browser only (localStorage). The JobSync server does not keep a shared account pool.
+const SESSIONS_KEY = "postSessions"; // { [emailLower]: { email, accessToken, refreshToken } }
+const SAVED_KEY = "postSaved";       // [{ email, password }]
+const state = { sessions: {}, accounts: [], saved: [], account: null, type: "TEXT", media: [], editingId: null, undo: [], page: 0, last: true, posts: [], options: null };
+
+function loadLocalAuth() {
+  const sessions = store.get(SESSIONS_KEY);
+  state.sessions = sessions && typeof sessions === "object" && !Array.isArray(sessions) ? sessions : {};
+  state.accounts = Object.values(state.sessions).map((s) => s.email).filter(Boolean);
+  const saved = store.get(SAVED_KEY);
+  state.saved = Array.isArray(saved) ? saved.filter((s) => s && s.email && s.password) : [];
+}
+function persistSessions() {
+  store.set(SESSIONS_KEY, state.sessions);
+  state.accounts = Object.values(state.sessions).map((s) => s.email).filter(Boolean);
+}
+function persistSaved() { store.set(SAVED_KEY, state.saved); }
+function sessionFor(email) {
+  if (!email) return null;
+  return state.sessions[email.toLowerCase()] || null;
+}
+function rememberSession(email, accessToken, refreshToken) {
+  if (!email) return;
+  const key = email.toLowerCase();
+  const prev = state.sessions[key] || {};
+  state.sessions[key] = {
+    email: prev.email || email,
+    accessToken: accessToken || prev.accessToken || "",
+    refreshToken: refreshToken || prev.refreshToken || "",
+  };
+  persistSessions();
+}
+function dropSession(email) {
+  if (!email) return;
+  delete state.sessions[email.toLowerCase()];
+  persistSessions();
+}
+function savedEmails() { return state.saved.map((s) => s.email); }
+function savedPassword(email) {
+  const row = state.saved.find((s) => s.email.toLowerCase() === (email || "").toLowerCase());
+  return row ? row.password : "";
+}
+function mergeSavedPairs(pairs) {
+  const by = new Map(state.saved.map((s) => [s.email.toLowerCase(), s]));
+  let added = 0, updated = 0;
+  for (const p of pairs || []) {
+    const email = (p.email || "").trim(), password = p.password || "";
+    if (!email || !password) continue;
+    const key = email.toLowerCase();
+    if (by.has(key)) { updated++; by.get(key).password = password; by.get(key).email = email; }
+    else { added++; by.set(key, { email, password }); }
+  }
+  state.saved = [...by.values()];
+  persistSaved();
+  return { added, updated };
+}
 
 async function api(path, options = {}) {
-  const headers = { "X-Account": state.account || "", ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }) };
+  const session = sessionFor(state.account);
+  const headers = {
+    "X-Account": state.account || "",
+    "X-Access-Token": session?.accessToken || "",
+    "X-Refresh-Token": session?.refreshToken || "",
+    ...(options.body instanceof FormData ? {} : { "Content-Type": "application/json" }),
+  };
   const res = await fetch(path, { ...options, headers });
   const body = await res.json().catch(() => ({}));
+  // Server may refresh tokens mid-request; keep this browser's copy in sync.
+  const at = res.headers.get("X-Access-Token"), rt = res.headers.get("X-Refresh-Token");
+  if (state.account && (at || rt)) rememberSession(state.account, at || session?.accessToken, rt || session?.refreshToken);
   if (!res.ok) { const e = new Error(body.error || `Request failed (${res.status})`); e.status = res.status; throw e; }
   return body;
 }
@@ -669,14 +733,11 @@ function safeHtml(html) {
 const textLength = (html) => new DOMParser().parseFromString(html || "", "text/html").body.textContent.trim().length;
 const initial = (email) => esc((email || "?").trim()[0] || "?");
 
-/* ---------- accounts ---------- */
+/* ---------- accounts (browser-local) ---------- */
 const isIn = (email) => state.accounts.some((a) => a.toLowerCase() === email.toLowerCase());
-function setAccounts(data) {
-  state.accounts = data.accounts || []; state.saved = data.saved || [];
-}
 function renderAccounts() {
   const box = $("account");
-  const savedOut = state.saved.filter((e) => !isIn(e));
+  const savedOut = savedEmails().filter((e) => !isIn(e));
   if (!state.accounts.length && !savedOut.length) {
     box.innerHTML = `<button class="btn btn-primary btn-sm" id="loginBtn">Log in</button>`;
     $("loginBtn").onclick = () => openLogin();
@@ -721,10 +782,11 @@ function switchAccount(email) {
   renderAccounts(); if (other) cancelEdit(); loadPosts(true);
   toast(`Posting as ${email}`);
 }
-async function loadAccounts() {
-  setAccounts(await api("/api/posts/accounts"));
+function loadAccounts() {
+  loadLocalAuth();
   const saved = store.get("postAccount");
-  state.account = state.accounts.includes(saved) ? saved : state.accounts[0] || null;
+  const match = state.accounts.find((a) => a.toLowerCase() === String(saved || "").toLowerCase());
+  state.account = match || state.accounts[0] || null;
   renderAccounts(); loadPosts(true);
 }
 function turnstileKey() {
@@ -773,17 +835,18 @@ $("loginForm").onsubmit = async (e) => {
     const data = await api("/api/posts/accounts", { method: "POST", body: JSON.stringify({
       email: $("email").value.trim(), password: $("password").value, turnstileToken,
     }) });
-    setAccounts(data); $("loginModal").classList.remove("open");
-    switchAccount(state.accounts.find((a) => a.toLowerCase() === data.email.toLowerCase()) || data.email);
+    rememberSession(data.email, data.accessToken, data.refreshToken);
+    $("loginModal").classList.remove("open");
+    switchAccount(data.email);
   } catch (err) {
     $("loginError").textContent = err.message;
     JobSyncTurnstile.reset($("turnstile"));
   }
   finally { $("loginSubmit").disabled = false; }
 };
-async function logout() {
+function logout() {
   const email = state.account;
-  setAccounts(await api(`/api/posts/accounts/${encodeURIComponent(email)}`, { method: "DELETE" }));
+  dropSession(email);
   state.account = null;
   if (state.accounts.length) switchAccount(state.accounts[0]); else { store.set("postAccount", null); renderAccounts(); loadPosts(true); }
   toast(`Logged out of ${email}`);
@@ -800,21 +863,23 @@ $("manyBtn").onclick = openBulk;
 $("csvBtn").onclick = () => { openBulk(); $("csvInput").click(); };
 $("bulkClose").onclick = () => $("bulkModal").classList.remove("open");
 function renderSaved() {
-  $("savedCount").textContent = `Saved logins (${state.saved.length})`;
-  $("loginAllBtn").hidden = !state.saved.some((e) => !isIn(e));
-  $("savedList").innerHTML = state.saved.length ? state.saved.map((e) => `<div class="saved-row">
+  const emails = savedEmails();
+  $("savedCount").textContent = `Saved logins (${emails.length})`;
+  $("loginAllBtn").hidden = !emails.some((e) => !isIn(e));
+  $("savedList").innerHTML = emails.length ? emails.map((e) => `<div class="saved-row">
       <span class="avatar small-avatar" style="${isIn(e) ? "" : "background:var(--muted)"}">${initial(e)}</span>
       <span class="acct-email">${esc(e)}</span>
       ${isIn(e) ? `<span class="on">Logged in</span><button class="btn btn-sm" data-use="${esc(e)}">Use</button>` : `<button class="btn btn-sm btn-primary" data-login="${esc(e)}">Log in</button>`}
       <button class="btn btn-sm btn-ghost" data-forget="${esc(e)}" title="Remove from saved logins" aria-label="Remove ${esc(e)}">✕</button>
-    </div>`).join("") : `<div class="empty">No saved logins yet. Paste them above or upload a CSV file.</div>`;
+    </div>`).join("") : `<div class="empty">No saved logins yet. Paste them above or upload a CSV file. Saved only in this browser.</div>`;
 }
 function bulkStatus(msg, isErr = false) { $("bulkStatus").textContent = msg; $("bulkStatus").style.color = isErr ? "var(--err)" : "var(--ok)"; }
 async function saveLogins(body) {
   try {
     const data = await api("/api/posts/saved", { method: "POST", body });
-    setAccounts(data); renderAccounts(); $("bulkText").value = "";
-    bulkStatus(`Saved ${data.added} new${data.updated ? `, updated ${data.updated}` : ""}${data.skipped ? `, skipped ${data.skipped} line${data.skipped > 1 ? "s" : ""} without email and password` : ""}.`);
+    const { added, updated } = mergeSavedPairs(data.pairs);
+    renderAccounts(); $("bulkText").value = "";
+    bulkStatus(`Saved ${added} new${updated ? `, updated ${updated}` : ""}${data.skipped ? `, skipped ${data.skipped} line${data.skipped > 1 ? "s" : ""} without email and password` : ""} in this browser.`);
   } catch (err) { bulkStatus(err.message, true); }
 }
 $("bulkSave").onclick = () => {
@@ -838,6 +903,12 @@ function waitForTurnstile(el, ms = 15000) {
   });
 }
 async function loginSaved(email, { quiet = false } = {}) {
+  const password = savedPassword(email);
+  if (!password) {
+    if (quiet) bulkStatus(`${email}: no saved password in this browser.`, true);
+    else toast("No saved password for this account in this browser.");
+    return false;
+  }
   if (!$("bulkModal").classList.contains("open")) await openBulk();
   await ensureBulkTurnstile();
   let turnstileToken = JobSyncTurnstile.token($("bulkTurnstile"));
@@ -853,9 +924,10 @@ async function loginSaved(email, { quiet = false } = {}) {
   }
   if (!quiet) toast(`Logging in ${email}…`);
   try {
-    setAccounts(await api("/api/posts/saved/login", { method: "POST", body: JSON.stringify({ email, turnstileToken }) }));
+    const data = await api("/api/posts/accounts", { method: "POST", body: JSON.stringify({ email, password, turnstileToken }) });
+    rememberSession(data.email || email, data.accessToken, data.refreshToken);
     JobSyncTurnstile.reset($("bulkTurnstile"));
-    if (!quiet) switchAccount(state.accounts.find((a) => a.toLowerCase() === email.toLowerCase()) || email);
+    if (!quiet) switchAccount(data.email || email);
     return true;
   } catch (err) {
     JobSyncTurnstile.reset($("bulkTurnstile"));
@@ -867,10 +939,13 @@ $("savedList").onclick = async (e) => {
   const login = e.target.closest("[data-login]"), use = e.target.closest("[data-use]"), forget = e.target.closest("[data-forget]");
   if (login) { login.disabled = true; login.textContent = "Logging in…"; if (await loginSaved(login.dataset.login, { quiet: true })) { switchAccount(login.dataset.login); } else { bulkStatus(`${login.dataset.login}: login failed. Check the password or Cloudflare check.`, true); renderSaved(); } }
   if (use) { switchAccount(use.dataset.use); $("bulkModal").classList.remove("open"); }
-  if (forget) { setAccounts(await api(`/api/posts/saved/${encodeURIComponent(forget.dataset.forget)}`, { method: "DELETE" })); renderAccounts(); }
+  if (forget) {
+    state.saved = state.saved.filter((s) => s.email.toLowerCase() !== forget.dataset.forget.toLowerCase());
+    persistSaved(); renderAccounts();
+  }
 };
 $("loginAllBtn").onclick = async () => {
-  const todo = state.saved.filter((e) => !isIn(e)); let ok = 0; const failed = [];
+  const todo = savedEmails().filter((e) => !isIn(e)); let ok = 0; const failed = [];
   $("loginAllBtn").disabled = true;
   await ensureBulkTurnstile();
   for (const email of todo) { bulkStatus(`Logging in ${email}…`); (await loginSaved(email, { quiet: true })) ? ok++ : failed.push(email); }
