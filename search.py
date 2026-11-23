@@ -131,7 +131,7 @@ SORTS = {"newest": "Newest first", "openings": "Biggest employers first"}
 # 6 keeps Workday under its rate limit better than 8 (Aerospace & similar sectors are Workday-heavy).
 MAX_WORKERS = 6
 # Free hosts (e.g. Render) time out if we hit every board; keep the biggest India employers first.
-MAX_BOARDS_PER_SEARCH = 80
+MAX_BOARDS_PER_SEARCH = 100
 
 
 def is_startup(board: dict) -> bool:

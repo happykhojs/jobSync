@@ -229,7 +229,7 @@
         </div></div>
       <div class="field"><label for="posted">Posted within</label><select id="posted"></select></div>
       <div class="field"><label for="sort">Sort by</label><select id="sort"></select></div>
-      <div class="field"><label for="count">Jobs to fetch</label><input id="count" type="number" min="1" max="250" value="40"></div>
+      <div class="field"><label for="count">Jobs to fetch</label><input id="count" type="number" min="1" max="250" value="100"></div>
       <button class="btn btn-primary go" id="searchBtn" type="submit">Search jobs</button>
     </div>
     <div class="filters collapsed" id="filters">
@@ -497,7 +497,7 @@ function renderFilters(opts) {
   $("keywords").value = saved.keywords || "";
   $("posted").value = String(saved.postedWithinDays || 14);
   $("sort").value = saved.sort || "newest";
-  $("count").value = saved.count || 40;
+  $("count").value = saved.count || 100;
   $("exclude").value = saved.excludeKeywords || "";
   $("titleOnly").checked = !!saved.titleOnly;
   $("salaryOnly").checked = !!saved.salaryOnly;
@@ -524,7 +524,7 @@ $("clearBtn").onclick = () => {
   $("titleOnly").checked = $("salaryOnly").checked = $("newOnly").checked = $("startupsOnly").checked = $("smallOnly").checked = $("smallTeamsOnly").checked = false;
   $("posted").value = "14";
   $("sort").value = "newest";
-  $("count").value = "40";
+  $("count").value = "100";
   store.set("search", null);  // drop saved filters that were causing empty searches
   toast("Filters cleared. Click Search jobs.");
 };
@@ -541,7 +541,7 @@ function criteria() {
     startupsOnly: $("startupsOnly").checked,
     smallCompaniesOnly: $("smallOnly").checked,
     smallTeamsOnly: $("smallTeamsOnly").checked,
-    count: Math.max(1, Math.min(250, parseInt($("count").value) || 40)),
+    count: Math.max(1, Math.min(250, parseInt($("count").value) || 100)),
     ...JSON.parse(JSON.stringify(state.filters)),
   };
 }
