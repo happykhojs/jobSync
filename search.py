@@ -130,6 +130,8 @@ def is_new_company(board: dict) -> bool:
 SORTS = {"newest": "Newest first", "openings": "Biggest employers first"}
 # 6 keeps Workday under its rate limit better than 8 (Aerospace & similar sectors are Workday-heavy).
 MAX_WORKERS = 6
+# Free hosts (e.g. Render) time out if we hit every board; keep the biggest India employers first.
+MAX_BOARDS_PER_SEARCH = 80
 
 
 def is_startup(board: dict) -> bool:
@@ -318,6 +320,11 @@ def search(
         boards = [b for b in catalog if board_ok(b, use_company_picks=False)]
         relaxed_company_picks = bool(boards)
 
+    truncated = False
+    if len(boards) > MAX_BOARDS_PER_SEARCH:
+        boards = sorted(boards, key=lambda b: b.get("indiaOpenings") or 0, reverse=True)[:MAX_BOARDS_PER_SEARCH]
+        truncated = True
+
     if not boards:
         return {
             "records": [],
@@ -488,9 +495,17 @@ def search(
         "companiesSearched": len(boards),
         "errors": errors,
     }
+    notices = []
     if relaxed_company_picks:
-        out["notice"] = (
+        notices.append(
             "Company name chips didn’t overlap with your sector filters, so those name picks were ignored. "
             "Clear company/startup/small-team chips if you only want sectors."
         )
+    if truncated:
+        notices.append(
+            f"Searched the {MAX_BOARDS_PER_SEARCH} largest employers in this filter first (faster on small hosts). "
+            "Pick specific companies or a narrower sector to go deeper."
+        )
+    if notices:
+        out["notice"] = " ".join(notices)
     return out

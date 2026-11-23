@@ -244,7 +244,7 @@ SEARCH_DIR = BASE_DIR / ".searches"
 SEARCH_ID_RE = re.compile(r"^[0-9a-f]{32}$")
 SEARCH_KEEP_SECONDS = 30 * 60
 # No progress for this long means the worker running it was restarted.
-SEARCH_STALL_SECONDS = 3 * 60
+SEARCH_STALL_SECONDS = 12 * 60
 
 
 def _search_file(search_id: str) -> Path:
