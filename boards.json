@@ -2165,6 +2165,16 @@
       "addedOn": "2026-10-27"
     },
     {
+      "provider": "greenhouse",
+      "board": "five9",
+      "companyName": "Five9",
+      "website": "https://www.five9.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-26",
+      "indiaOpenings": 20
+    },
+    {
       "provider": "workday",
       "board": "pfizer/wd1/PfizerCareers",
       "companyName": "Pfizer",
@@ -2613,6 +2623,16 @@
       "addedOn": "2026-11-05",
       "indiaOpenings": 13,
       "employeesApprox": 28
+    },
+    {
+      "provider": "greenhouse",
+      "board": "scopely",
+      "companyName": "Scopely",
+      "website": "https://www.scopely.com",
+      "sector": "Media & Advertising",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-26",
+      "indiaOpenings": 13
     },
     {
       "provider": "greenhouse",
@@ -3337,6 +3357,26 @@
       "indiaOpenings": 6
     },
     {
+      "provider": "greenhouse",
+      "board": "starburst",
+      "companyName": "Starburst",
+      "website": "https://www.starburst.io",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-26",
+      "indiaOpenings": 6
+    },
+    {
+      "provider": "greenhouse",
+      "board": "project44",
+      "companyName": "project44",
+      "website": "https://www.project44.com",
+      "sector": "Logistics & Supply Chain",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-26",
+      "indiaOpenings": 6
+    },
+    {
       "provider": "ashby",
       "board": "snowflake",
       "companyName": "Snowflake",
@@ -3443,6 +3483,16 @@
       "companyType": "Indian Startup",
       "addedOn": "2026-11-21",
       "employeesApprox": 17,
+      "indiaOpenings": 5
+    },
+    {
+      "provider": "greenhouse",
+      "board": "jfrog",
+      "companyName": "JFrog",
+      "website": "https://jfrog.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-26",
       "indiaOpenings": 5
     },
     {
@@ -3609,6 +3659,26 @@
       "employeesApprox": 20
     },
     {
+      "provider": "greenhouse",
+      "board": "neo4j",
+      "companyName": "Neo4j",
+      "website": "https://neo4j.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-26",
+      "indiaOpenings": 4
+    },
+    {
+      "provider": "greenhouse",
+      "board": "fourkites",
+      "companyName": "FourKites",
+      "website": "https://www.fourkites.com",
+      "sector": "Logistics & Supply Chain",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-26",
+      "indiaOpenings": 4
+    },
+    {
       "provider": "ashby",
       "board": "atlan",
       "companyName": "Atlan",
@@ -3700,6 +3770,16 @@
       "employeesApprox": 80
     },
     {
+      "provider": "greenhouse",
+      "board": "pingidentity",
+      "companyName": "Ping Identity",
+      "website": "https://www.pingidentity.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-26",
+      "indiaOpenings": 3
+    },
+    {
       "provider": "lever",
       "board": "pocketfm",
       "companyName": "Pocket FM",
@@ -3768,6 +3848,26 @@
       "sector": "IT & Software",
       "companyType": "Multinational (MNC)",
       "addedOn": "2026-11-14",
+      "indiaOpenings": 2
+    },
+    {
+      "provider": "greenhouse",
+      "board": "flexport",
+      "companyName": "Flexport",
+      "website": "https://www.flexport.com",
+      "sector": "Logistics & Supply Chain",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-26",
+      "indiaOpenings": 2
+    },
+    {
+      "provider": "greenhouse",
+      "board": "waymo",
+      "companyName": "Waymo",
+      "website": "https://waymo.com",
+      "sector": "Automotive",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-26",
       "indiaOpenings": 2
     },
     {
@@ -3924,6 +4024,16 @@
       "sector": "IT & Software",
       "companyType": "Multinational (MNC)",
       "addedOn": "2026-11-14",
+      "indiaOpenings": 1
+    },
+    {
+      "provider": "ashby",
+      "board": "zapier",
+      "companyName": "Zapier",
+      "website": "https://zapier.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-26",
       "indiaOpenings": 1
     },
     {
