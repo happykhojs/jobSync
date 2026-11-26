@@ -961,7 +961,6 @@ function openEditor(key) {
       ${input("experienceMinYears", "Min years", p.experienceMinYears, "number")}
       ${input("experienceMaxYears", "Max years", p.experienceMaxYears, "number")}
       ${input("openings", "Openings", p.openings ?? 1, "number")}
-      ${input("expiresAt", "Expires on", (p.expiresAt || "").slice(0, 10), "date")}
     </div></div>
     <div class="section"><h3>Salary</h3><div class="grid grid-3">
       ${input("salaryMin", "Min", p.salaryMin, "number")}
@@ -1014,7 +1013,6 @@ function readEditor() {
     employmentType: str("employmentType"), workplaceType: str("workplaceType"), experienceLevel: str("experienceLevel") || null,
     experienceMinYears: num("experienceMinYears"), experienceMaxYears: num("experienceMaxYears"),
     openings: num("openings") || 1,
-    expiresAt: str("expiresAt") ? new Date(str("expiresAt") + "T23:59:59Z").toISOString() : null,
     salaryMin: num("salaryMin"), salaryMax: num("salaryMax"),
     salaryCurrency: str("salaryCurrency") || null, salaryPeriod: str("salaryPeriod") || null,
     salaryVisible: val("salaryVisible").checked,

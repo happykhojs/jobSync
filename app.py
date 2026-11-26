@@ -84,7 +84,8 @@ def clean_payload(payload: dict) -> dict:
 
 def api_payload(payload: dict) -> dict:
     # Keys starting with "_" are dashboard bookkeeping (e.g. _ai) and never go to the API.
-    return {k: v for k, v in clean_payload(dict(payload)).items() if not k.startswith("_")}
+    # Never send expiresAt so posted jobs do not have deadlines.
+    return {k: v for k, v in clean_payload(dict(payload)).items() if not k.startswith("_") and k != "expiresAt"}
 
 
 def to_view(jobs: list[dict]) -> list[dict]:

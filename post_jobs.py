@@ -26,7 +26,7 @@ import logging
 import os
 import re
 import time
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -45,8 +45,6 @@ ENV_FILE = BASE_DIR / ".env"
 API_URL = "https://api.workowon.com/api/jobs/admin/external-jobs"
 TIMEOUT = 30
 REQUEST_DELAY_SECONDS = 0.5
-# Source APIs rarely give an expiry date; expire listings this many days after posting.
-DEFAULT_EXPIRY_DAYS = 30
 
 # Adjust these to whatever enum values your API expects.
 # Source values are matched by keyword (first match wins), e.g. "Full-time Employment", "On-roll".
@@ -96,7 +94,6 @@ def build_payload(job: dict) -> dict:
         else:
             workplace = "ONSITE"
     employment = normalize(job.get("employmentType"), EMPLOYMENT_TYPES) or normalize(job["title"], EMPLOYMENT_TYPES[:4]) or "FULL_TIME"
-    expires = datetime.now(timezone.utc) + timedelta(days=DEFAULT_EXPIRY_DAYS)
 
     payload = {
         "externalCompanyName": job["externalCompanyName"],
@@ -117,7 +114,6 @@ def build_payload(job: dict) -> dict:
         "salaryPeriod": job.get("salaryPeriod") or None,
         "salaryVisible": bool(job.get("salaryVisible")),
         "openings": job.get("openings") or 1,
-        "expiresAt": job.get("expiresAt") or expires.isoformat().replace("+00:00", "Z"),
         "locations": [
             {k: l.get(k) for k in ("city", "state", "country")} | {"remote": bool(l.get("remote"))}
             for l in job["locations"] if l.get("raw")
