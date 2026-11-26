@@ -3780,6 +3780,26 @@
       "indiaOpenings": 3
     },
     {
+      "provider": "greenhouse",
+      "board": "komodohealth",
+      "companyName": "Komodo Health",
+      "website": "https://www.komodohealth.com",
+      "sector": "Healthcare & Medical Devices",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-26",
+      "indiaOpenings": 3
+    },
+    {
+      "provider": "greenhouse",
+      "board": "roku",
+      "companyName": "Roku",
+      "website": "https://www.roku.com",
+      "sector": "Media & Advertising",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-26",
+      "indiaOpenings": 3
+    },
+    {
       "provider": "lever",
       "board": "pocketfm",
       "companyName": "Pocket FM",
