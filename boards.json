@@ -428,6 +428,17 @@
     },
     {
       "provider": "workday",
+      "board": "abb/wd3/External_Career_Page",
+      "companyName": "ABB",
+      "website": "https://global.abb",
+      "sector": "Manufacturing & Industrial",
+      "companyType": "Multinational (MNC)",
+      "country": "in",
+      "addedOn": "2026-11-27",
+      "indiaOpenings": 152
+    },
+    {
+      "provider": "workday",
       "board": "aptiv/wd5/APTIV_CAREERS",
       "companyName": "Aptiv",
       "website": "https://www.aptiv.com",
@@ -2009,6 +2020,16 @@
       "employeesApprox": 100
     },
     {
+      "provider": "greenhouse",
+      "board": "nice",
+      "companyName": "NICE",
+      "website": "https://www.nice.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-27",
+      "indiaOpenings": 25
+    },
+    {
       "provider": "lever",
       "board": "saviynt",
       "companyName": "Saviynt",
@@ -2032,6 +2053,16 @@
     },
     {
       "provider": "greenhouse",
+      "board": "onetrust",
+      "companyName": "OneTrust",
+      "website": "https://www.onetrust.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-27",
+      "indiaOpenings": 24
+    },
+    {
+      "provider": "greenhouse",
       "board": "smartsheet",
       "companyName": "Smartsheet",
       "website": "https://www.smartsheet.com",
@@ -2048,6 +2079,16 @@
       "sector": "IT & Software",
       "companyType": "Multinational (MNC)",
       "addedOn": "2026-11-05",
+      "indiaOpenings": 23
+    },
+    {
+      "provider": "greenhouse",
+      "board": "kaseya",
+      "companyName": "Kaseya",
+      "website": "https://www.kaseya.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-27",
       "indiaOpenings": 23
     },
     {
@@ -2636,6 +2677,16 @@
     },
     {
       "provider": "greenhouse",
+      "board": "solarwinds",
+      "companyName": "SolarWinds",
+      "website": "https://www.solarwinds.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-27",
+      "indiaOpenings": 13
+    },
+    {
+      "provider": "greenhouse",
       "board": "prodigal",
       "companyName": "Prodigal",
       "website": "https://www.prodigaltech.com",
@@ -2759,6 +2810,16 @@
       "employeesApprox": 80
     },
     {
+      "provider": "greenhouse",
+      "board": "6sense",
+      "companyName": "6sense",
+      "website": "https://6sense.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-27",
+      "indiaOpenings": 11
+    },
+    {
       "provider": "workday",
       "board": "expedia/wd108/search",
       "companyName": "Expedia",
@@ -2868,6 +2929,16 @@
       "addedOn": "2026-11-05",
       "indiaOpenings": 10,
       "employeesApprox": 15
+    },
+    {
+      "provider": "greenhouse",
+      "board": "globalizationpartners",
+      "companyName": "G-P",
+      "website": "https://www.g-p.com",
+      "sector": "Education & HR Tech",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-27",
+      "indiaOpenings": 10
     },
     {
       "provider": "greenhouse",
@@ -3377,6 +3448,26 @@
       "indiaOpenings": 6
     },
     {
+      "provider": "greenhouse",
+      "board": "taboola",
+      "companyName": "Taboola",
+      "website": "https://www.taboola.com",
+      "sector": "Media & Advertising",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-27",
+      "indiaOpenings": 6
+    },
+    {
+      "provider": "greenhouse",
+      "board": "yext",
+      "companyName": "Yext",
+      "website": "https://www.yext.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-27",
+      "indiaOpenings": 6
+    },
+    {
       "provider": "ashby",
       "board": "snowflake",
       "companyName": "Snowflake",
@@ -3679,6 +3770,16 @@
       "indiaOpenings": 4
     },
     {
+      "provider": "greenhouse",
+      "board": "jamf",
+      "companyName": "Jamf",
+      "website": "https://www.jamf.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-27",
+      "indiaOpenings": 4
+    },
+    {
       "provider": "ashby",
       "board": "atlan",
       "companyName": "Atlan",
@@ -3797,6 +3898,16 @@
       "sector": "Media & Advertising",
       "companyType": "Multinational (MNC)",
       "addedOn": "2026-11-26",
+      "indiaOpenings": 3
+    },
+    {
+      "provider": "ashby",
+      "board": "cognition",
+      "companyName": "Cognition",
+      "website": "https://cognition.ai",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-27",
       "indiaOpenings": 3
     },
     {
@@ -4054,6 +4165,36 @@
       "sector": "IT & Software",
       "companyType": "Multinational (MNC)",
       "addedOn": "2026-11-26",
+      "indiaOpenings": 1
+    },
+    {
+      "provider": "greenhouse",
+      "board": "salesloft",
+      "companyName": "Salesloft",
+      "website": "https://www.salesloft.com",
+      "sector": "IT & Software",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-27",
+      "indiaOpenings": 1
+    },
+    {
+      "provider": "greenhouse",
+      "board": "hootsuite",
+      "companyName": "Hootsuite",
+      "website": "https://www.hootsuite.com",
+      "sector": "Media & Advertising",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-27",
+      "indiaOpenings": 1
+    },
+    {
+      "provider": "greenhouse",
+      "board": "thetradedesk",
+      "companyName": "The Trade Desk",
+      "website": "https://www.thetradedesk.com",
+      "sector": "Media & Advertising",
+      "companyType": "Multinational (MNC)",
+      "addedOn": "2026-11-27",
       "indiaOpenings": 1
     },
     {

@@ -1072,8 +1072,8 @@ $("superFunBtn").onclick = () => {
   const on = SuperFun.toggle();
   renderFunBtn(); toast(on ? "🚀 SUPER FUN: anything can happen now. You're the 🦖 at the bottom (press ? for controls)" : "Super Fun off. The disco ball rests 🪩");
 };
-// Fun Zone and Super Fun are switched off for now; set these to true to bring them back.
-const FUN_ZONE_ENABLED = false;
+// Super Fun is switched off for now; set this to true to bring it back. Fun Zone is on.
+const FUN_ZONE_ENABLED = true;
 const SUPER_FUN_ENABLED = false;
 if (FUN_ZONE_ENABLED) window.Fun?.init();
 else {
